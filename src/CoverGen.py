@@ -295,7 +295,7 @@ if __name__ == '__main__':
                     model_zip_link = gr.Text(label='Ссылка на загрузку модели', info='Это должна быть ссылка на zip-файл, содержащий файл модели .pth и необязательный файл .index.', scale = 3)
                     model_name = gr.Text(label='Имя модели', info='Дайте вашей загружаемой модели уникальное имя, отличное от других голосовых моделей.', scale = 1.5)
 
-                with gr.Row():
+                with gr.Row(equal_height=True):
                     dl_output_message = gr.Text(label='Сообщение вывода', interactive=False, scale=3)
                     download_btn = gr.Button('Загрузить модель', variant='primary', scale=1.5)
 
@@ -308,7 +308,7 @@ if __name__ == '__main__':
                 gr.Markdown('- Загрузить zip-файл и дать уникальное имя голосу')
                 gr.Markdown('- Нажмите кнопку "Загрузить модель"')
     
-                with gr.Row():
+                with gr.Row(equal_height=True):
                     with gr.Column(scale=2):
                         zip_file = gr.File(label='Zip-файл')
 
