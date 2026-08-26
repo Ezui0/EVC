@@ -8,8 +8,6 @@ import sys
 from typing import Any
 
 import gradio as gr
-from PolUVR.utils import PolUVR_UI
-
 from tabs.inference import inference_tab
 
 DEFAULT_SERVER_NAME = "127.0.0.1"
@@ -35,9 +33,6 @@ with gr.Blocks(
     
     with gr.Tab("Inference"):
         inference_tab()
-
-    with gr.Tab("PolUVR (UVR)"):
-        PolUVR_UI("models/UVR_models", "output/UVR_output")
 
     
 def launch_gradio(server_name: str, server_port: int) -> None:
