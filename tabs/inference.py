@@ -7,6 +7,7 @@ from rvc.infer.infer import (
     load_rvc_model,
     get_vc
 )
+from rvc.modules.model_manager import download_from_url, upload_separate_files, upload_zip_file
 import os
 import json
 
@@ -313,19 +314,73 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
             )
 
         with gr.TabItem("Download Model"):
-            with gr.Row():
-                url=gr.Textbox(label="Enter the URL to the Model:")
-            with gr.Row():
-                model = gr.Textbox(label="Name your model:")
-                download_button=gr.Button(label="Download")
-            with gr.Row():
-                status_bar=gr.Textbox(label="")
-                #download_button.click(fn=download_from_url, inputs=[url, model], outputs=[status_bar])
+            output_message = gr.Text(label="Output Message", interactive=False)
+            
+            with gr.Accordion("Download ZIP from URL", open=True):
+                gr.HTML(
+                    "<h3>"
+                    "Supported sites: "
+                    "<a href='https://huggingface.co/' target='_blank'>HuggingFace</a>, "
+                    "<a href='https://pixeldrain.com/' target='_blank'>Pixeldrain</a>, "
+                    "<a href='https://drive.google.com/' target='_blank'>Google Drive</a>, "
+                    "<a href='https://mega.nz/' target='_blank'>Mega</a>, "
+                    "<a href='https://disk.yandex.ru/' target='_blank'>Yandex Disk</a>"
+                    "</h3>"
+                )
+                with gr.Column():
+                    with gr.Group():
+                        zip_link = gr.Text(label="ZIP download link")
+                        model_name = gr.Text(
+                            label="Model name",
+                            info="Give your uploaded model a unique name different from other voice models.",
+                        )
+                    download_btn = gr.Button("Download model", variant="primary")
+                
+                download_btn.click(
+                    download_from_url,
+                    inputs=[zip_link, model_name],
+                    outputs=output_message,
+                )
+            
+            with gr.Accordion("Upload ZIP file", open=False):
+                with gr.Column():
+                    with gr.Group():
+                        zip_file = gr.File(label="Zip file", file_types=[".zip"], file_count="single")
+                        model_name_zip = gr.Text(
+                            label="Model name",
+                            info="Give your uploaded model a unique name different from other voice models.",
+                        )
+                    upload_zip_btn = gr.Button("Upload model", variant="primary")
+                
+                upload_zip_btn.click(
+                    upload_zip_file,
+                    inputs=[zip_file, model_name_zip],
+                    outputs=output_message,
+                )
+            
+            with gr.Accordion("Upload .pth and .index files", open=False):
+                with gr.Column():
+                    with gr.Group():
+                        with gr.Row(equal_height=False):
+                            pth_file = gr.File(label="pth file", file_types=[".pth"], file_count="single")
+                            index_file = gr.File(label="index file", file_types=[".index"], file_count="single")
+                        model_name_files = gr.Text(
+                            label="Model name",
+                            info="Give your uploaded model a unique name different from other voice models.",
+                        )
+                    upload_files_btn = gr.Button("Upload model", variant="primary")
+                
+                upload_files_btn.click(
+                    upload_separate_files,
+                    inputs=[pth_file, index_file, model_name_files],
+                    outputs=output_message,
+                )
+            
             with gr.Row():
                 gr.Markdown(
-                f"""
+                """
                 Original RVC:https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI
-                {app_name} {url_github}
+                {app_name}: {url_github}
                 """
                 )
 
