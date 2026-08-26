@@ -47,7 +47,7 @@ def save_to_wav2(file):
 def change_choices2():
     return gr.Dropdown(choices=[""] + [os.path.join("audios", f) for f in os.listdir("audios") if f.endswith(('.wav', '.mp3', '.flac'))] if os.path.exists("audios") else [])
 
-with gr.Blocks(theme=gr.themes.Base()) as app:
+def inference_tab():
     with gr.Tabs():
         with gr.TabItem("Inference"):
             gr.HTML(f"<h1> Easy GUI v2 (rejekts) - adapted to {app_name} 💻 </h1>")
