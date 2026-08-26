@@ -5,8 +5,7 @@ import os
 import edge_tts
 import gradio as gr
 import torch
-from fairseq.checkpoint_utils import load_model_ensemble_and_task
-from fairseq.data.dictionary import Dictionary
+from rvc.modules import fairseq
 from pydub import AudioSegment
 from scipy.io import wavfile
 
@@ -62,8 +61,9 @@ def load_rvc_model(rvc_model):
 # Загружает модель Hubert
 def load_hubert(model_path):
     torch.serialization.add_safe_globals([Dictionary])
-    model, _, _ = load_model_ensemble_and_task([model_path], suffix="")
-    hubert = model[0].to(config.device).float()
+    model, _, _ = fairseq.load_model(model_path).to(self.device).eval()
+                
+    hubert = models.half() if self.config.is_half else models.float()
     hubert.eval()
     return hubert
 
