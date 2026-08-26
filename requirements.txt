@@ -24,4 +24,4 @@ local-attention
 tensorboardX
 
 # Условные зависимости
-omegaconf
+omegaconf>=2.0.6
