@@ -8,6 +8,17 @@ from rvc.infer.infer import (
     get_vc
 )
 from rvc.modules.model_manager import download_from_url, upload_separate_files, upload_zip_file
+from tabs.components.modules import (
+    OUTPUT_FORMAT,
+    edge_voices,
+    update_edge_voices,
+    get_folders,
+    update_models_list,
+    process_file_upload,
+    show_hop_slider,
+    swap_visibility,
+    swap_buttons
+)
 import os
 import json
 
@@ -35,7 +46,7 @@ def get_index():
     return indexes[0] if indexes else ""
 
 def change_choices():
-    models = get_model_names()
+    models = get_folders()
     indexes = get_indexes()
     return gr.Dropdown(choices=models, value=models[0] if models else ""), gr.Dropdown(choices=indexes, value=indexes[0] if indexes else "")
 
@@ -129,7 +140,7 @@ def inference_tab():
             gr.HTML(f"<h1> Easy GUI v2 (rejekts) - adapted to {app_name} 💻 </h1>")
 
             with gr.Row():
-                sid0 = gr.Dropdown(label="1.Choose your Model.", choices=get_model_names(), value=get_model_names()[0] if get_model_names() else '')
+                sid0 = gr.Dropdown(label="1.Choose your Model.", choices=get_folders(), value=get_folders()[0] if get_folders() else '')
                 refresh_button = gr.Button("Refresh", variant="primary")
                 vc_transform0 = gr.Number(label="Optional: You can change the pitch here or leave it at 0.", value=0)
                 spk_item = gr.Slider(
@@ -181,7 +192,7 @@ def inference_tab():
                             interactive=True,
                             )
                         refresh_button.click(
-                            fn=lambda: (gr.Dropdown(update=True, choices=get_model_names(), value=get_model_names()[0] if get_model_names() else ""), 
+                            fn=lambda: (gr.Dropdown(update=True, choices=get_folders(), value=get_folders()[0] if get_folders() else ""), 
                                       gr.Dropdown(update=True, choices=get_indexes(), value=get_index())),
                             inputs=[], outputs=[sid0, file_index1]
                             )
@@ -340,7 +351,7 @@ def inference_tab():
                     with gr.Row():
                         format1 = gr.Radio(
                             label="Export format",
-                            choices=["wav", "flac", "mp3", "m4a"],
+                            choices=OUTPUT_FORMAT,
                             value="flac",
                             interactive=True,
                         )
@@ -367,10 +378,21 @@ def inference_tab():
 
         with gr.TabItem("Text to Speech + RVC"):
             with gr.Row():
+                tts_language = gr.Dropdown(
+                    label="Select Language",
+                    choices=list(edge_voices.keys()),
+                    value="Русский"
+                )
                 tts_voice = gr.Dropdown(
                     label="Select TTS Voice",
-                    choices=["en-US-JennyNeural", "en-US-GuyNeural", "en-GB-SoniaNeural", "en-GB-RyanNeural", "ru-RU-SvetlanaNeural", "ru-RU-DmitryNeural"],
-                    value="en-US-JennyNeural"
+                    choices=edge_voices["Русский"],
+                    value=edge_voices["Русский"][0]
+                )
+                # Update voice dropdown when language changes
+                tts_language.change(
+                    fn=update_edge_voices,
+                    inputs=[tts_language],
+                    outputs=[tts_voice]
                 )
             with gr.Row():
                 tts_text = gr.Textbox(label="Enter text to synthesize", lines=5)
@@ -381,7 +403,13 @@ def inference_tab():
             with gr.Row():
                 tts_output = gr.Audio(label="TTS Output")
             with gr.Row():
-                tts_rvc_model = gr.Dropdown(label="RVC Model for conversion", choices=get_model_names())
+                tts_rvc_model = gr.Dropdown(label="RVC Model for conversion", choices=get_folders())
+                refresh_models_btn = gr.Button("Refresh Models", variant="secondary", size="sm")
+                refresh_models_btn.click(
+                    fn=update_models_list,
+                    inputs=[],
+                    outputs=[tts_rvc_model]
+                )
             with gr.Row():
                 tts_convert_btn = gr.Button("Convert TTS to RVC", variant="primary")
             # Fix: Use safe wrapper for TTS inference
