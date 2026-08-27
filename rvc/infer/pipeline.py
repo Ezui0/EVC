@@ -12,11 +12,11 @@ from torch import Tensor
 
 from rvc.lib.predictors.f0 import CREPE, FCPE, RMVPE
 
-# Фильтр Баттерворта для высоких частот
+# High-pass Butterworth filter
 bh, ah = signal.butter(N=5, Wn=48, btype="high", fs=16000)
 
 
-# Класс для обработки аудио
+# Audio processing helper
 class AudioProcessor:
     @staticmethod
     def change_rms(
@@ -37,11 +37,11 @@ class AudioProcessor:
         return adjusted_audio
 
 
-# Класс для преобразования голоса
+# Voice conversion class
 class VC:
     def __init__(self, tgt_sr, config):
         """
-        Инициализация параметров для преобразования голоса.
+        Initialize parameters for voice conversion.
         """
         self.x_pad = config.x_pad
         self.x_query = config.x_query
@@ -69,7 +69,7 @@ class VC:
         f0_max=1100,
     ):
         """
-        Получает F0 с использованием выбранного метода.
+        Extract F0 using the selected method.
         """
         f0 = None
         f0_mel_min = 1127 * np.log(1 + f0_min / 700)
@@ -93,7 +93,7 @@ class VC:
             del model
 
         if f0 is None:
-            raise ValueError("Метод F0 не распознан или не смог рассчитать F0.")
+            raise ValueError("F0 method not recognized or failed to compute F0.")
 
         f0 *= pow(2, pitch / 12)
         f0bak = f0.copy()
@@ -120,7 +120,7 @@ class VC:
         protect,
     ):
         """
-        Преобразует аудио с использованием модели.
+        Convert audio using the model.
         """
         feats = torch.from_numpy(audio0).float()
         if feats.dim() == 2:
@@ -202,7 +202,7 @@ class VC:
         f0_max=1100,
     ):
         """
-        Основной конвейер для преобразования аудио.
+        Main pipeline for audio conversion.
         """
         index = big_npy = None
         if file_index and os.path.exists(file_index) and index_rate != 0:
@@ -210,7 +210,7 @@ class VC:
                 index = faiss.read_index(file_index)
                 big_npy = index.reconstruct_n(0, index.ntotal)
             except Exception as error:
-                print(f"Произошла ошибка при чтении индекса FAISS: {error}")
+                print(f"Error while reading FAISS index: {error}")
 
         opt_ts = []
         audio = signal.filtfilt(bh, ah, audio)

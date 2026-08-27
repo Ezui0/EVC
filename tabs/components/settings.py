@@ -2,14 +2,14 @@ import gradio as gr
 
 
 def settings():
-    with gr.Accordion("Настройки преобразования", open=False):
+    with gr.Accordion("Conversion Settings", open=False):
         with gr.Column(variant="panel"):
-            with gr.Accordion("Стандартные настройки", open=False):
+            with gr.Accordion("Standard Settings", open=False):
                 with gr.Group():
                     with gr.Column():
                         f0_method = gr.Dropdown(
                             value="rmvpe",
-                            label="Метод выделения тона",
+                            label="Pitch extraction method",
                             choices=["rmvpe", "fcpe", "crepe", "crepe-tiny"],
                             interactive=True,
                             visible=True,
@@ -19,8 +19,8 @@ def settings():
                             maximum=512,
                             step=8,
                             value=128,
-                            label="Длина шага",
-                            info="Меньшие значения приводят к более длительным преобразованиям, что увеличивает риск появления артефактов в голосе, однако при этом достигается более точная передача тона.",
+                            label="Hop length",
+                            info="Smaller values lead to longer conversions, which increases the risk of artifacts in the voice, but achieves more accurate pitch reproduction.",
                             interactive=True,
                             visible=False,
                         )
@@ -29,8 +29,8 @@ def settings():
                             maximum=1,
                             step=0.1,
                             value=0,
-                            label="Влияние индекса",
-                            info="Влияние, оказываемое индексным файлом; Чем выше значение, тем больше влияние. Однако выбор более низких значений может помочь смягчить артефакты, присутствующие в аудио.",
+                            label="Index influence",
+                            info="The influence of the index file; the higher the value, the greater its effect. However, choosing lower values can help mitigate artifacts present in the audio.",
                             interactive=True,
                             visible=True,
                         )
@@ -39,8 +39,8 @@ def settings():
                             maximum=1,
                             step=0.01,
                             value=1,
-                            label="Скорость смешивания RMS",
-                            info="Заменить или смешать с огибающей громкости выходного сигнала. Чем ближе значение к 1, тем больше используется огибающая выходного сигнала.",
+                            label="RMS mix rate",
+                            info="Replace or blend with the volume envelope of the output signal. The closer the value is to 1, the more of the output envelope is used.",
                             interactive=True,
                             visible=True,
                         )
@@ -49,13 +49,13 @@ def settings():
                             maximum=0.5,
                             step=0.01,
                             value=0.5,
-                            label="Защита согласных",
-                            info="Защитить согласные и звуки дыхания, чтобы избежать электроакустических разрывов и артефактов. Максимальное значение параметра 0.5 обеспечивает полную защиту. Уменьшение этого значения может снизить защиту, но уменьшить эффект индексирования.",
+                            label="Consonant protection",
+                            info="Protect consonants and breathing sounds to avoid electroacoustic breaks and artifacts. The maximum value of 0.5 provides full protection. Lowering this value may reduce protection but also lessen the indexing effect.",
                             interactive=True,
                             visible=True,
                         )
 
-            with gr.Accordion("Дополнительные настройки", open=False):
+            with gr.Accordion("Advanced Settings", open=False):
                 with gr.Column():
                     with gr.Row():
                         f0_min = gr.Slider(
@@ -63,8 +63,8 @@ def settings():
                             maximum=120,
                             step=1,
                             value=50,
-                            label="Минимальный диапазон тона",
-                            info="Определяет нижнюю границу диапазона тона, который алгоритм будет использовать для определения основной частоты (F0) в аудиосигнале.",
+                            label="Minimum pitch range",
+                            info="Defines the lower bound of the pitch range the algorithm will use to determine the fundamental frequency (F0) in the audio signal.",
                             interactive=True,
                             visible=True,
                         )
@@ -73,8 +73,8 @@ def settings():
                             maximum=16000,
                             step=1,
                             value=1100,
-                            label="Максимальный диапазон тона",
-                            info="Определяет верхнюю границу диапазона тона, который алгоритм будет использовать для определения основной частоты (F0) в аудиосигнале.",
+                            label="Maximum pitch range",
+                            info="Defines the upper bound of the pitch range the algorithm will use to determine the fundamental frequency (F0) in the audio signal.",
                             interactive=True,
                             visible=True,
                         )

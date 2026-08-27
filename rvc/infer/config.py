@@ -3,20 +3,20 @@ from multiprocessing import cpu_count
 import torch
 
 
-# Конфигурация устройства и параметров
+# Device and parameter configuration
 class Config:
     def __init__(self):
-        # Определяем устройство для использования
+        # Determine the device to use
         self.device = self.get_device()
-        # Получаем количество ядер CPU
+        # Get the number of CPU cores
         self.n_cpu = cpu_count()
-        # Инициализируем имя GPU и объем памяти
+        # Initialize GPU name and memory size
         self.gpu_name = None
         self.gpu_mem = None
-        # Конфигурируем параметры, специфичные для устройства
+        # Configure device-specific parameters
         self.x_pad, self.x_query, self.x_center, self.x_max = self.device_config()
 
-    # Определяем устройство для использования
+    # Determine the device to use
     def get_device(self):
         if torch.cuda.is_available():
             return "cuda"
@@ -24,29 +24,29 @@ class Config:
             return "mps"
         return "cpu"
 
-    # Конфигурируем параметры, специфичные для устройства
+    # Configure device-specific parameters
     def device_config(self):
         if torch.cuda.is_available():
-            print("Используемое устройство - CUDA")
+            print("Device in use - CUDA")
             self._configure_gpu()
         elif torch.backends.mps.is_available():
-            print("Используемое устройство - MPS")
+            print("Device in use - MPS")
             self.device = "mps"
         else:
-            print("Используемое устройство - CPU")
+            print("Device in use - CPU")
             self.device = "cpu"
 
-        # Устанавливаем значения отступов, запросов, центра и максимума
+        # Set padding, query, center and max values
         x_pad, x_query, x_center, x_max = (1, 6, 38, 41)
-        # Корректируем параметры, если объем памяти GPU низкий
+        # Adjust parameters if GPU memory is low
         if self.gpu_mem is not None and self.gpu_mem <= 4:
             x_pad, x_query, x_center, x_max = (1, 5, 30, 32)
 
         return x_pad, x_query, x_center, x_max
 
-    # Конфигурируем настройки, специфичные для GPU
+    # Configure GPU-specific settings
     def _configure_gpu(self):
-        # Получаем имя GPU
+        # Get the GPU name
         self.gpu_name = torch.cuda.get_device_name(self.device)
-        # Вычисляем объем памяти GPU в ГБ
+        # Compute GPU memory size in GB
         self.gpu_mem = int(torch.cuda.get_device_properties(self.device).total_memory / 1024 / 1024 / 1024 + 0.4)

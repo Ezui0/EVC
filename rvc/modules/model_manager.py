@@ -7,37 +7,37 @@ import gradio as gr
 
 from rvc.modules.download_source import download_file
 
-# Путь к директории, где будут храниться модели RVC
+# Path to the directory where RVC models are stored
 rvc_models_dir = os.path.join(os.getcwd(), "models", "RVC_models")
 os.makedirs(rvc_models_dir, exist_ok=True)
 
 
-# Распаковывает zip-файл в указанную директорию и находит файлы модели (.pth и .index)
+# Extracts a zip archive into the given directory and locates the model files (.pth and .index)
 def extract_zip(extraction_folder, zip_name):
-    os.makedirs(extraction_folder, exist_ok=True)  # Создаем директорию для распаковки, если она не существует
+    os.makedirs(extraction_folder, exist_ok=True)  # Create the extraction directory if it does not exist
     with zipfile.ZipFile(zip_name, "r") as zip_ref:
-        zip_ref.extractall(extraction_folder)  # Распаковываем zip-файл
-    os.remove(zip_name)  # Удаляем zip-файл после распаковки
+        zip_ref.extractall(extraction_folder)  # Extract the zip archive
+    os.remove(zip_name)  # Remove the zip archive after extraction
 
     index_filepath, model_filepath = None, None
-    # Проходим по всем файлам в распакованной директории для поиска .pth и .index
+    # Walk through all files in the extracted directory looking for .pth and .index
     for root, _, files in os.walk(extraction_folder):
         for name in files:
             file_path = os.path.join(root, name)
-            if name.endswith(".index") and os.stat(file_path).st_size > 1024 * 100:  # Минимальный размер файла index
+            if name.endswith(".index") and os.stat(file_path).st_size > 1024 * 100:  # Minimum index file size
                 index_filepath = file_path
-            if name.endswith(".pth") and os.stat(file_path).st_size > 1024 * 1024 * 40:  # Минимальный размер файла pth
+            if name.endswith(".pth") and os.stat(file_path).st_size > 1024 * 1024 * 40:  # Minimum pth file size
                 model_filepath = file_path
 
     if not model_filepath:
-        # Если файл модели не найден, вызываем ошибку
-        raise gr.Error("Не найден файл модели .pth в распакованном zip-файле. Проверьте содержимое в {extraction_folder}.")
+        # Raise an error if no model file was found
+        raise gr.Error("No .pth model file found in the extracted zip archive. Check the contents of {extraction_folder}.")
 
-    # Переименовываем и удаляем ненужные папки
+    # Rename files and remove unneeded folders
     rename_and_cleanup(extraction_folder, model_filepath, index_filepath)
 
 
-# Функция для переименования файлов и удаления пустых папок
+# Renames files and removes empty folders
 def rename_and_cleanup(extraction_folder, model_filepath, index_filepath):
     os.rename(
         model_filepath,
@@ -49,86 +49,86 @@ def rename_and_cleanup(extraction_folder, model_filepath, index_filepath):
             os.path.join(extraction_folder, os.path.basename(index_filepath)),
         )
 
-    # Удаляем оставшиеся пустые директории после распаковки
+    # Remove leftover empty directories after extraction
     for filepath in os.listdir(extraction_folder):
         full_path = os.path.join(extraction_folder, filepath)
         if os.path.isdir(full_path):
             shutil.rmtree(full_path)
 
 
-# Основная функция для скачивания модели по ссылке и распаковки zip-файла
+# Downloads a model from a URL and extracts the zip archive
 def download_from_url(url, dir_name, progress=gr.Progress()):
     try:
-        progress(0, desc=f"[~] Загрузка голосовой модели {dir_name}...")
+        progress(0, desc=f"[~] Downloading voice model {dir_name}...")
         zip_name = os.path.join(rvc_models_dir, dir_name + ".zip")
         extraction_folder = os.path.join(rvc_models_dir, dir_name)
         if os.path.exists(extraction_folder):
-            # Проверка на наличие директории с таким именем
-            raise gr.Error(f"Директория голосовой модели {dir_name} уже существует! Выберите другое имя для вашей голосовой модели.")
+            # Check whether a directory with this name already exists
+            raise gr.Error(f"Voice model directory {dir_name} already exists! Choose a different name for your voice model.")
 
-        download_file(url, zip_name, progress)  # Скачивание файла
-        progress(0.8, desc="[~] Распаковка zip-файла...")
-        extract_zip(extraction_folder, zip_name)  # Распаковка zip-файла
-        return f"[+] Модель {dir_name} успешно загружена!"
+        download_file(url, zip_name, progress)  # Download the file
+        progress(0.8, desc="[~] Extracting zip archive...")
+        extract_zip(extraction_folder, zip_name)  # Extract the zip archive
+        return f"[+] Model {dir_name} successfully installed!"
     except Exception as e:
-        # Обработка ошибок при загрузке модели
-        raise gr.Error(f"Ошибка при загрузке модели: {str(e)}")
+        # Handle errors during model installation
+        raise gr.Error(f"Model installation error: {str(e)}")
 
 
-# Функция для загрузки и распаковки zip-файла модели через интерфейс
+# Handles uploading and extracting a model zip archive via the interface
 def upload_zip_file(zip_path, dir_name, progress=gr.Progress()):
     try:
         extraction_folder = os.path.join(rvc_models_dir, dir_name)
         if os.path.exists(extraction_folder):
-            raise gr.Error(f"Директория голосовой модели {dir_name} уже существует! Выберите другое имя для вашей голосовой модели.")
+            raise gr.Error(f"Voice model directory {dir_name} already exists! Choose a different name for your voice model.")
 
         zip_name = zip_path.name
-        progress(0.8, desc="[~] Распаковка zip-файла...")
-        extract_zip(extraction_folder, zip_name)  # Распаковка zip-файла
-        return f"[+] Модель {dir_name} успешно загружена!"
+        progress(0.8, desc="[~] Extracting zip archive...")
+        extract_zip(extraction_folder, zip_name)  # Extract the zip archive
+        return f"[+] Model {dir_name} successfully installed!"
     except Exception as e:
-        # Обработка ошибок при загрузке и распаковке
-        raise gr.Error(f"Ошибка при загрузке модели: {str(e)}")
+        # Handle errors during upload and extraction
+        raise gr.Error(f"Model installation error: {str(e)}")
 
 
-# Функция для загрузки отдельных файлов модели (.pth и .index)
+# Handles uploading separate model files (.pth and .index)
 def upload_separate_files(pth_file, index_file, dir_name, progress=gr.Progress()):
     try:
         extraction_folder = os.path.join(rvc_models_dir, dir_name)
         if os.path.exists(extraction_folder):
-            raise gr.Error(f"Директория голосовой модели {dir_name} уже существует! Выберите другое имя для вашей голосовой модели.")
+            raise gr.Error(f"Voice model directory {dir_name} already exists! Choose a different name for your voice model.")
 
         os.makedirs(extraction_folder, exist_ok=True)
 
-        # Загружаем файл .pth
-        progress(0.4, desc="[~] Загрузка .pth файла...")
+        # Upload the .pth file
+        progress(0.4, desc="[~] Uploading .pth file...")
         if pth_file:
             pth_path = os.path.join(extraction_folder, os.path.basename(pth_file.name))
             shutil.copyfile(pth_file.name, pth_path)
 
-        # Загружаем файл .index
-        progress(0.8, desc="[~] Загрузка .index файла...")
+        # Upload the .index file
+        progress(0.8, desc="[~] Uploading .index file...")
         if index_file:
             index_path = os.path.join(extraction_folder, os.path.basename(index_file.name))
             shutil.copyfile(index_file.name, index_path)
 
-        return f"[+] Модель {dir_name} успешно загружена!"
+        return f"[+] Model {dir_name} successfully installed!"
     except Exception as e:
-        # Обработка ошибок при загрузке файлов
-        raise gr.Error(f"Ошибка при загрузке модели: {str(e)}")
+        # Handle errors during file upload
+        raise gr.Error(f"Model installation error: {str(e)}")
 
 
-# Основная функция для вызова из командной строки
+# Entry point for command-line usage
 def main():
     if len(sys.argv) != 3:
-        print('\nИспользование:\npython3 -m rvc.modules.model_manager "url" "dir_name"\n')
+        print('\nUsage:\npython3 -m rvc.modules.model_manager "url" "dir_name"\n')
         sys.exit(1)
 
     url = sys.argv[1]
     dir_name = sys.argv[2]
 
     try:
-        # Скачивание и загрузка модели через командную строку
+        # Download and install the model from the command line
         result = download_from_url(url, dir_name)
         print(result)
     except gr.Error as e:

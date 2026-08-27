@@ -28,12 +28,12 @@ sys.modules["fairseq.data"] = fairseq_data
 sys.modules["fairseq.data.dictionary"] = fairseq_data_dictionary
 
 def load_model(filename):
-    # weights_only=False обязателен: чекпоинт содержит объекты omegaconf/argparse,
-    # которые не десериализуются при весах по умолчанию в PyTorch >= 2.6.
+    # weights_only=False is required: the checkpoint contains omegaconf/argparse
+    # objects which fail to deserialize under PyTorch >= 2.6 defaults.
     state = torch.load(filename, map_location="cpu", weights_only=False)
 
-    # Отбираем только те параметры конфигурации, которые принимает HubertConfig:
-    # защищает от отсутствующих и лишних ключей в чекпоинте.
+    # Keep only the configuration parameters accepted by HubertConfig:
+    # guards against missing and extra keys in the checkpoint.
     model_cfg = state['cfg']['model'] if 'cfg' in state else state['args']
     valid_params = set(inspect.signature(HubertConfig.__init__).parameters)
     cfg_kwargs = {key: value for key, value in dict(model_cfg).items() if key in valid_params}

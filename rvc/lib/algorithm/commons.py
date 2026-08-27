@@ -33,7 +33,7 @@ def slice_segments(x: torch.Tensor, ids_str: torch.Tensor, segment_size: int = 4
     elif dim == 3:
         ret = torch.zeros_like(x[:, :, :segment_size])
     else:
-        raise ValueError(f"Неподдерживаемая размерность: {dim}. Поддерживаются размерности 2 и 3.")
+        raise ValueError(f"Unsupported dimensionality: {dim}. Only dimensions 2 and 3 are supported.")
 
     for i in range(x.size(0)):
         idx_str = ids_str[i].item()

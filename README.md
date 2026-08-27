@@ -3,7 +3,7 @@
 # PolGen
 <img src="https://raw.githubusercontent.com/Bebra777228/PolGen-RVC/refs/heads/PolGen/assets/logo.ico" width="100"/><img src="https://counter.seku.su/cmoe?name=PolGen&theme=r34"/><br>
 
-**PolGen** — это инновационный инструмент для создания каверов и переозвучки с использованием голосов, обученных на RVC v2.
+**PolGen** is an innovative tool for creating covers and dubbing using voices trained on RVC v2.
 
 </div>
 
@@ -11,56 +11,56 @@
 
 <div align="center">
 
-# 🌟 Основные возможности 🌟
+# 🌟 Key Features 🌟
 
 </div>
 
-### 📦 Гибкая установка моделей
+### 📦 Flexible model installation
 
-PolGen поддерживает несколько способов установки моделей:
+PolGen supports several ways to install models:
 
-- **Загрузка по ссылке на ZIP-файл**: Поддерживаемые сайты: [HuggingFace](https://huggingface.co/), [Pixeldrain](https://pixeldrain.com/), [Google Drive](https://drive.google.com/), [Mega](https://mega.nz/), [Яндекс Диск](https://disk.yandex.ru/).
-- **Загрузка ZIP-файла с устройства**: Просто перетащите ZIP-файл в программу.
-- **Загрузка .pth и .index файлов по отдельности**: Нет необходимости запаковывать файлы в ZIP архив.
+- **Download via a ZIP file link**: Supported sites: [HuggingFace](https://huggingface.co/), [Pixeldrain](https://pixeldrain.com/), [Google Drive](https://drive.google.com/), [Mega](https://mega.nz/), [Yandex Disk](https://disk.yandex.ru/).
+- **Upload a ZIP file from your device**: Simply drag and drop the ZIP file into the program.
+- **Upload .pth and .index files separately**: No need to pack the files into a ZIP archive.
 
-### 🗣️ Преобразование текста в речь (TTS) от Edge-TTS
+### 🗣️ Text-to-speech (TTS) via Edge-TTS
 
-PolGen поддерживает преобразование текста в речь с использованием Edge-TTS. Создавайте разговорные аудиозаписи из текста без лишних усилий.
+PolGen supports text-to-speech conversion using Edge-TTS. Create spoken audio recordings from text with minimal effort.
 
-### 🛠️ Установка кастомных HuBERT моделей
+### 🛠️ Custom HuBERT model installation
 
-PolGen предоставляет гибкость в выборе моделей для лучшего результата. Установите кастомные HuBERT модели, чтобы адаптировать программу под свои нужды.
+PolGen gives you the flexibility to choose models for the best results. Install custom HuBERT models to tailor the program to your needs.
 
 ---
 
 <div align="center">
 
-# 🚀 Установка и запуск 🚀
+# 🚀 Installation and Launch 🚀
 
 </div>
 
-## Запуск на Google Colab
+## Running on Google Colab
 
-Если у вас нет мощной видеокарты от NVIDIA, PolGen можно запустить с использованием Google Colab.
+If you don't have a powerful NVIDIA graphics card, PolGen can be run using Google Colab.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1W39tbdYxR1NSVNHG6EDRiKkY4JM0f60B)
 
-## Запуск на ПК
+## Running on PC
 
 > [!NOTE]
-> 1. Скачайте ZIP-архив и распакуйте содержимое в любое удобное место - [Скачать](https://github.com/Bebra777228/PolGen-RVC/archive/refs/heads/PolGen.zip)
-> 2. Запустите файл для установки PolGen:
+> 1. Download the ZIP archive and extract its contents to any convenient location - [Download](https://github.com/Bebra777228/PolGen-RVC/archive/refs/heads/PolGen.zip)
+> 2. Run the installer file to install PolGen:
 >    - **Windows**: `run-PolGen-installer.bat`
 >    - **Linux**: `run-PolGen-installer.sh`
-> 3. Запустите программу PolGen:
+> 3. Run the PolGen program:
 >    - **Windows**: `run-PolGen.bat`
 >    - **Linux**: `run-PolGen.sh`
-> > Для Windows, возможно, потребуется установить **[Microsoft C++ Build Tools](https://visualstudio.microsoft.com/ru/visual-cpp-build-tools/)** с выбранной нагрузкой **«Desktop development with C++»**.
+> > On Windows, you may need to install **[Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)** with the **"Desktop development with C++"** workload selected.
 
 > [!TIP]
-> Для лучшего опыта рекомендуется использовать предварительно скомпилированную версию.
-> 1. Скачайте ZIP-архив и распакуйте содержимое в любое удобное место - [Репозиторий](https://huggingface.co/Politrees/PolGen/tree/main) / [Скачать](https://huggingface.co/Politrees/PolGen/resolve/main/PolGen-v1.2.0-FIX.zip?download=true)
-> 2. Запустите файл:
+> For the best experience, it is recommended to use the precompiled version.
+> 1. Download the ZIP archive and extract its contents to any convenient location - [Repository](https://huggingface.co/Politrees/PolGen/tree/main) / [Download](https://huggingface.co/Politrees/PolGen/resolve/main/PolGen-v1.2.0-FIX.zip?download=true)
+> 2. Run the file:
 >    - **Windows**: `run-PolGen.bat`
 >    - **Linux**: `run-PolGen.sh`
 
@@ -68,36 +68,36 @@ PolGen предоставляет гибкость в выборе моделе�
 
 <div align="center">
 
-# 🚫 Условия использования
+# 🚫 Terms of Use
 
 </div>
 
-Использование преобразованного голоса для следующих целей **запрещено**:
+Using the converted voice for the following purposes is **prohibited**:
 
-- Критика или нападение на отдельных лиц.
-- Поддержка или противодействие конкретным политическим позициям, религиям или идеологиям.
-- Публичное отображение сильно стимулирующих выражений без соответствующего зонирования.
-- Продажа голосовых моделей и сгенерированных голосовых клипов.
-- Притворство оригинальным владельцем голоса с злонамеренными намерениями причинить вред/боль другим.
-- Мошеннические цели, ведущие к краже личности или мошенническим телефонным звонкам.
+- Criticizing or attacking individuals.
+- Supporting or opposing specific political positions, religions, or ideologies.
+- Publicly displaying highly stimulating expressions without proper content zoning.
+- Selling voice models and generated voice clips.
+- Impersonating the original owner of the voice with malicious intent to harm or distress others.
+- Fraudulent purposes leading to identity theft or fraudulent phone calls.
 
 ---
 
 <div align="center">
 
-# 🛡️ Отказ от ответственности
+# 🛡️ Disclaimer
 
-Я не несу ответственности за любые прямые, косвенные, последующие, случайные или специальные убытки, которые могут возникнуть в результате или в связи с использованием, неправильным использованием или невозможностью использования этого программного обеспечения.
-
----
-
-# 📞 Контакты
-
-Если у вас есть вопросы или предложения, пожалуйста, свяжитесь со мной через [Telegram](https://t.me/Politrees2) или [GitHub Issues](https://github.com/Bebra777228/Pol-Litres-RVC/issues).
+I am not liable for any direct, indirect, consequential, incidental, or special damages that may arise out of or in connection with the use, misuse, or inability to use this software.
 
 ---
 
-# Внесли свой вклад в проект:
+# 📞 Contacts
+
+If you have any questions or suggestions, please reach out to me via [Telegram](https://t.me/Politrees2) or [GitHub Issues](https://github.com/Bebra777228/Pol-Litres-RVC/issues).
+
+---
+
+# Contributors:
 
 <a href="https://github.com/Bebra777228/PolGen-RVC/graphs/contributors" target="_blank">
   <img src="https://contrib.rocks/image?repo=Bebra777228/PolGen-RVC" />

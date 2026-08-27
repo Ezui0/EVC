@@ -10,34 +10,34 @@ from rvc.infer.infer import rvc_edgetts_infer, rvc_infer
 
 
 def create_parser():
-    # Базовый парсер с общими аргументами
+    # Base parser with shared arguments
     base_parser = argparse.ArgumentParser(add_help=False)
-    base_parser.add_argument("--rvc_model", type=str, required=True, help="Название RVC модели")
-    base_parser.add_argument("--f0_method", type=str, default="rmvpe", help="Метод извлечения F0")
-    base_parser.add_argument("--f0_min", type=int, default=50, help="Минимальная частота F0")
-    base_parser.add_argument("--f0_max", type=int, default=1100, help="Максимальная частота F0")
-    base_parser.add_argument("--hop_length", type=int, default=128, help="Длина шага для обработки")
-    base_parser.add_argument("--rvc_pitch", type=float, default=0, help="Высота тона RVC модели")
-    base_parser.add_argument("--protect", type=float, default=0.5, help="Защита согласных")
-    base_parser.add_argument("--index_rate", type=float, default=0, help="Коэффициент индекса")
-    base_parser.add_argument("--volume_envelope", type=float, default=1, help="Огибающая громкости")
-    base_parser.add_argument("--output_format", type=str, default="mp3", help="Формат выходного файла")
+    base_parser.add_argument("--rvc_model", type=str, required=True, help="Name of the RVC model")
+    base_parser.add_argument("--f0_method", type=str, default="rmvpe", help="F0 extraction method")
+    base_parser.add_argument("--f0_min", type=int, default=50, help="Minimum F0 frequency")
+    base_parser.add_argument("--f0_max", type=int, default=1100, help="Maximum F0 frequency")
+    base_parser.add_argument("--hop_length", type=int, default=128, help="Hop length for processing")
+    base_parser.add_argument("--rvc_pitch", type=float, default=0, help="Pitch shift of the RVC model")
+    base_parser.add_argument("--protect", type=float, default=0.5, help="Consonant protection")
+    base_parser.add_argument("--index_rate", type=float, default=0, help="Index rate")
+    base_parser.add_argument("--volume_envelope", type=float, default=1, help="Volume envelope")
+    base_parser.add_argument("--output_format", type=str, default="mp3", help="Output file format")
 
-    # Главный парсер с субкомандами
-    parser = argparse.ArgumentParser(description="Инструмент для замены голоса при помощи RVC")
+    # Main parser with subcommands
+    parser = argparse.ArgumentParser(description="Tool for voice conversion using RVC")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # Субкоманда для RVC
-    rvc_parser = subparsers.add_parser("rvc", parents=[base_parser], help="Конвертация аудио-файла")
-    rvc_parser.add_argument("--input_path", type=str, required=True, help="Путь к аудио-файлу")
+    # Subcommand for RVC
+    rvc_parser = subparsers.add_parser("rvc", parents=[base_parser], help="Convert an audio file")
+    rvc_parser.add_argument("--input_path", type=str, required=True, help="Path to the audio file")
 
-    # Субкоманда для TTS
-    tts_parser = subparsers.add_parser("tts", parents=[base_parser], help="Синтез речи из текста")
-    tts_parser.add_argument("--tts_voice", type=str, required=True, help="Голос для синтеза речи")
-    tts_parser.add_argument("--tts_text", type=str, required=True, help="Текст для синтеза речи")
-    tts_parser.add_argument("--tts_rate", type=int, default=0, help="Скорость синтеза речи")
-    tts_parser.add_argument("--tts_volume", type=int, default=0, help="Скорость синтеза речи")
-    tts_parser.add_argument("--tts_pitch", type=int, default=0, help="Скорость синтеза речи")
+    # Subcommand for TTS
+    tts_parser = subparsers.add_parser("tts", parents=[base_parser], help="Synthesize speech from text")
+    tts_parser.add_argument("--tts_voice", type=str, required=True, help="Voice for speech synthesis")
+    tts_parser.add_argument("--tts_text", type=str, required=True, help="Text for speech synthesis")
+    tts_parser.add_argument("--tts_rate", type=int, default=0, help="Speech synthesis rate")
+    tts_parser.add_argument("--tts_volume", type=int, default=0, help="Speech synthesis volume")
+    tts_parser.add_argument("--tts_pitch", type=int, default=0, help="Speech synthesis pitch")
 
     return parser
 
@@ -71,7 +71,7 @@ def main():
             tts_pitch=args.tts_pitch,
         )
 
-    print("\033[1;92m\nГолос успешно заменен!\n\033[0m")
+    print("\033[1;92m\nVoice converted successfully!\n\033[0m")
 
 
 if __name__ == "__main__":

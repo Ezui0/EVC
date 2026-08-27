@@ -52,8 +52,8 @@ def save_to_wav2(file):
     return file.name if hasattr(file, 'name') else str(file)
 
 def get_audio_dropdown_update(current_value=None):
-    """Собирает gr.update для дропдауна выбора аудио: список файлов из папки audios
-    плюс текущий выбранный путь (записанный/загруженный), чтобы значение всегда было в choices."""
+    """Builds a gr.update for the audio-selection dropdown: the list of files from the "audios"
+    folder plus the currently selected path (recorded/uploaded), so the value always matches choices."""
     audio_files = []
     if os.path.exists("audios"):
         audio_files = [os.path.join("audios", f) for f in os.listdir("audios") if f.endswith(('.wav', '.mp3', '.flac'))]
@@ -68,7 +68,7 @@ def change_choices2():
     return gr.Dropdown(choices=[""], value="")
 
 def inference_tab():
-    # Папка для аудиофайлов, которые пользователь добавляет через dropbox/запись
+    # Folder for audio files that the user adds via dropbox/recording
     os.makedirs("audios", exist_ok=True)
     with gr.Tabs():
         with gr.TabItem("Inference"):

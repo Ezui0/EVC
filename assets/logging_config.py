@@ -1,4 +1,4 @@
-"""Настройка конфигурации логирования для различных библиотек и модулей."""
+"""Logging configuration setup for various libraries and modules."""
 
 import logging
 import os
@@ -7,53 +7,54 @@ import warnings
 
 def configure_logging(enable_configure_logging=True, global_logger=False, logging_level="WARNING"):
     """
-    Эта функция устанавливает уровни логирования для различных библиотек и модулей,
-    чтобы сократить количество выводимых сообщений и улучшить читаемость логов.
+    This function sets logging levels for various libraries and modules
+    to reduce the amount of printed messages and improve log readability.
 
-    Параметры:
+    Parameters:
     - enable_configure_logging (bool, optional):
-        Главный переключатель для всей настройки логирования.
-        Если установлен в False, функция не будет выполнять никаких действий.
-      По умолчанию: True
+        Master switch for the entire logging configuration.
+        If set to False, the function will not perform any actions.
+      Default: True
 
     - global_logger (bool, optional):
-        Флаг для включения или выключения глобального логгера.
-        Если установлен в True, настраивает уровень логирования для всех логгеров.
-        Если False, настраивает уровень логирования только для указанных библиотек.
-      По умолчанию: False
+        Flag to enable or disable the global logger.
+        If True, configures the logging level for all loggers.
+        If False, configures the logging level only for the listed libraries.
+      Default: False
 
     - logging_level (str, optional):
-        Пользовательский уровень логирования.
-        Должен быть одним из следующих: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL".
-        Если указано некорректное значение, будет использовано значение по умолчанию "WARNING".
-      По умолчанию: "WARNING"
+        Custom logging level.
+        Must be one of: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL".
+        If an invalid value is given, the default value "WARNING" is used.
+      Default: "WARNING"
 
-    Уровни логирования:
-    - 0 | DEBUG: Подробная информация, обычно интересная только при отладке проблем.
-    - 1 | INFO: Подтверждение того, что все работает как ожидалось.
-    - 2 | WARNING: Индикация того, что что-то неожиданное произошло, или индикация
-               проблемы в ближайшем будущем (например, 'диск заполняется').
-               Программа все еще работает как ожидалось.
-    - 3 | ERROR: Из-за более серьезной проблемы программа не может выполнить некоторые функции.
-    - 4 | CRITICAL: Указывает на то, что программа, возможно, не может продолжить выполнение.
+    Logging levels:
+    - 0 | DEBUG: Detailed information, usually of interest only when debugging problems.
+    - 1 | INFO: Confirmation that everything works as expected.
+    - 2 | WARNING: An indication that something unexpected happened, or that a problem
+               may occur in the near future (e.g. 'disk space running low').
+               The software is still working as expected.
+    - 3 | ERROR: Due to a more serious problem, the software has been unable to
+             perform some functions.
+    - 4 | CRITICAL: Indicates that the program itself may be unable to continue running.
 
-    В этом случае мы устанавливаем уровень логирования WARNING для всех библиотек и модулей,
-    чтобы игнорировать сообщения уровня DEBUG и INFO.
+    In this case we set the logging level to WARNING for all libraries and modules,
+    so that DEBUG and INFO level messages are ignored.
     """
 
     if enable_configure_logging:
-        # ===== Настройка переменных окружения для зависимостей ===== #
+        # ===== Set environment variables for dependencies ===== #
         os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
         os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 
-        # ===== Обработка системных предупреждений ===== #
+        # ===== Handle system warnings ===== #
         warnings.filterwarnings("ignore", category=FutureWarning)
         warnings.filterwarnings("ignore", category=UserWarning)
 
-        # Получаем уровень логирования из строки
+        # Parse the logging level from the string
         level = getattr(logging, logging_level, logging.WARNING)
 
-        # ===== Настройка логгеров сторонних библиотек ===== #
+        # ===== Configure third-party library loggers ===== #
         if global_logger:
             logging.basicConfig(level=level)
         else:
@@ -72,17 +73,17 @@ def configure_logging(enable_configure_logging=True, global_logger=False, loggin
 
 
 """
-Пример использования функции configure_logging в основном файле:
+Example of using the configure_logging function in the main file:
 
-1. С полными параметрами:
+1. With full parameters:
 from logging_config import configure_logging
 configure_logging(enable_configure_logging=True, global_logger=False, logging_level="DEBUG")
 
-2. С сокращенными параметрами (используя значения по умолчанию для именованных аргументов):
+2. With shortened parameters (using default values for named arguments):
 from logging_config import configure_logging
 configure_logging(True, False, "DEBUG")
 
-3. С параметрами по умолчанию (если не требуется особая настройка):
+3. With default parameters (if no special configuration is required):
 from logging_config import configure_logging
 configure_logging()
 """

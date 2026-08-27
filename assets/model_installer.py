@@ -9,7 +9,7 @@ EMBEDDERS = "https://huggingface.co/Politrees/RVC_resources/resolve/main/embedde
 PREDICTORS_DIR = os.path.join(os.getcwd(), "rvc", "models", "predictors")
 EMBEDDERS_DIR = os.path.join(os.getcwd(), "rvc", "models", "embedders")
 
-# Создаем папки, если их нет
+# Create folders if they do not exist
 os.makedirs(PREDICTORS_DIR, exist_ok=True)
 os.makedirs(EMBEDDERS_DIR, exist_ok=True)
 
@@ -17,15 +17,15 @@ os.makedirs(EMBEDDERS_DIR, exist_ok=True)
 def dl_model(link, model_name, dir_name):
     file_path = os.path.join(dir_name, model_name)
     if os.path.exists(file_path):
-        return  # Пропускаем загрузку, если файл уже существует
+        return  # Skip download if the file already exists
 
     try:
         r = requests.get(f"{link}{model_name}", stream=True, timeout=(10, 300))
         r.raise_for_status()
 
-        # Получаем общий размер файла
+        # Get the total file size
         total_size = int(r.headers.get("content-length", 0))
-        # Используем tqdm для отображения прогресса
+        # Use tqdm to display progress
         with open(file_path, "wb") as f, tqdm(
             desc=f"Downloading {model_name}",
             total=total_size,
@@ -37,7 +37,7 @@ def dl_model(link, model_name, dir_name):
                 f.write(chunk)
                 bar.update(len(chunk))
     except Exception:
-        # Удаляем недокачанный файл, чтобы следующая попытка началась заново
+        # Remove the incomplete file so the next attempt starts fresh
         if os.path.exists(file_path):
             os.remove(file_path)
         raise
@@ -46,7 +46,7 @@ def dl_model(link, model_name, dir_name):
 def check_and_install_models(offline=False):
     try:
         if offline:
-            print("Работаем в OFFLINE режиме — загрузка моделей пропущена.")
+            print("Running in OFFLINE mode - skipping model downloads.")
             return
 
         predictors_names = ["rmvpe.pt", "fcpe.pt"]
@@ -58,6 +58,6 @@ def check_and_install_models(offline=False):
             dl_model(EMBEDDERS, model, EMBEDDERS_DIR)
 
     except requests.exceptions.RequestException as e:
-        print(f"Произошла ошибка при загрузке модели: {e}")
+        print(f"Error downloading model: {e}")
     except Exception as e:
-        print(f"Произошла непредвиденная ошибка: {e}")
+        print(f"Unexpected error occurred: {e}")
