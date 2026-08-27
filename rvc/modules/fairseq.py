@@ -1,5 +1,6 @@
 import re
 import sys
+import inspect
 import math
 import uuid
 import torch
@@ -27,8 +28,17 @@ sys.modules["fairseq.data"] = fairseq_data
 sys.modules["fairseq.data.dictionary"] = fairseq_data_dictionary
 
 def load_model(filename):
-    state = torch.load(filename, map_location="cpu")
-    model = HubertModel(HubertConfig(**state['cfg']['model']))
+    # weights_only=False обязателен: чекпоинт содержит объекты omegaconf/argparse,
+    # которые не десериализуются при весах по умолчанию в PyTorch >= 2.6.
+    state = torch.load(filename, map_location="cpu", weights_only=False)
+
+    # Отбираем только те параметры конфигурации, которые принимает HubertConfig:
+    # защищает от отсутствующих и лишних ключей в чекпоинте.
+    model_cfg = state['cfg']['model'] if 'cfg' in state else state['args']
+    valid_params = set(inspect.signature(HubertConfig.__init__).parameters)
+    cfg_kwargs = {key: value for key, value in dict(model_cfg).items() if key in valid_params}
+
+    model = HubertModel(HubertConfig(**cfg_kwargs))
     model.load_state_dict(state['model'], strict=False)
     return model
 
@@ -1197,7 +1207,7 @@ class BaseFairseqModel(nn.Module):
         self.eval()
 
 class HubertConfig:
-    def __init__(self, _name, label_rate, encoder_layers_1, logit_temp_ctr, num_negatives, cross_sample_negatives, ctr_layers, extractor_mode = "default", encoder_layers = 12, encoder_embed_dim = 768, encoder_ffn_embed_dim = 3072, encoder_attention_heads = 12, activation_fn = "gelu", layer_type = "transformer", dropout = 0.1, attention_dropout = 0.1, activation_dropout = 0.0, encoder_layerdrop = 0.0, dropout_input = 0.0, dropout_features = 0.0, final_dim = 0, untie_final_proj = False, layer_norm_first = False, conv_feature_layers = "[(512,10,5)] + [(512,3,2)] * 4 + [(512,2,2)] * 2", conv_bias = False, logit_temp = 0.1, target_glu = False, feature_grad_mult = 1.0, mask_length = 10, mask_prob = 0.65, mask_selection = "static", mask_other = 0.0, no_mask_overlap = False, mask_min_space = 1, mask_channel_length = 10, mask_channel_prob = 0.0, mask_channel_selection = "static", mask_channel_other = 0.0, no_mask_channel_overlap = False, mask_channel_min_space = 1, conv_pos = 128, conv_pos_groups = 16, conv_pos_batch_norm = False, latent_temp = (2, 0.5, 0.999995), skip_masked = False, skip_nomask = False, checkpoint_activations = False, required_seq_len_multiple = 2, depthwise_conv_kernel_size = 31, attn_type = "", pos_enc_type = "abs", fp16 = False):
+    def __init__(self, _name = "hubert", label_rate = 50.0, encoder_layers_1 = None, logit_temp_ctr = None, num_negatives = 100000, cross_sample_negatives = 0, ctr_layers = None, extractor_mode = "default", encoder_layers = 12, encoder_embed_dim = 768, encoder_ffn_embed_dim = 3072, encoder_attention_heads = 12, activation_fn = "gelu", layer_type = "transformer", dropout = 0.1, attention_dropout = 0.1, activation_dropout = 0.0, encoder_layerdrop = 0.0, dropout_input = 0.0, dropout_features = 0.0, final_dim = 0, untie_final_proj = False, layer_norm_first = False, conv_feature_layers = "[(512,10,5)] + [(512,3,2)] * 4 + [(512,2,2)] * 2", conv_bias = False, logit_temp = 0.1, target_glu = False, feature_grad_mult = 1.0, mask_length = 10, mask_prob = 0.65, mask_selection = "static", mask_other = 0.0, no_mask_overlap = False, mask_min_space = 1, mask_channel_length = 10, mask_channel_prob = 0.0, mask_channel_selection = "static", mask_channel_other = 0.0, no_mask_channel_overlap = False, mask_channel_min_space = 1, conv_pos = 128, conv_pos_groups = 16, conv_pos_batch_norm = False, latent_temp = (2, 0.5, 0.999995), skip_masked = False, skip_nomask = False, checkpoint_activations = False, required_seq_len_multiple = 2, depthwise_conv_kernel_size = 31, attn_type = "", pos_enc_type = "abs", fp16 = False):
         self._name = _name
         self.label_rate = label_rate
         self.encoder_layers_1 = encoder_layers_1
@@ -1216,7 +1226,7 @@ class HubertConfig:
         self.attention_dropout = attention_dropout
         self.activation_dropout = activation_dropout
         self.encoder_layerdrop = encoder_layerdrop
-        self.dropout_input = encoder_layerdrop
+        self.dropout_input = dropout_input
         self.dropout_features = dropout_features
         self.final_dim = final_dim
         self.untie_final_proj = untie_final_proj

@@ -1,27 +1,17 @@
-# Основные библиотеки
+# Dependencies untuk EVC (PolGen fork)
+# torch/torchaudio dipasang terpisah oleh installer (index CUDA resmi PyTorch)
+gradio>=4.0
 requests
-numpy<2
-gradio
-einops
-mega-x
-gdown
-wget
 tqdm
-
-# Библиотеки для работы с аудио и видео
-ffmpeg-python>=0.2.0
-PolUVR[gpu]
+edge-tts>=6.1.0
+pydub
+scipy
+numpy
+librosa
+soundfile
+faiss-cpu
 torchcrepe
 torchfcpe
-edge-tts
-
-# Машинное обучение и нейронные сети
-torch
-torchaudio==2.6
-torchvision==0.21
-faiss-cpu>=1.7.3
-local-attention
-tensorboardX
-
-# Условные зависимости
-omegaconf>=2.0.6
+omegaconf
+gdown
+mega.py

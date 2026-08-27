@@ -1,11 +1,9 @@
 import gradio as gr
 from rvc.infer.infer import (
     rvc_infer,
+    rvc_batch_infer,
     rvc_edgetts_infer,
     RVC_MODELS_DIR,
-    OUTPUT_DIR,
-    load_rvc_model,
-    get_vc
 )
 from rvc.modules.model_manager import download_from_url, upload_separate_files, upload_zip_file
 from tabs.components.modules import (
@@ -14,13 +12,8 @@ from tabs.components.modules import (
     update_edge_voices,
     get_folders,
     update_models_list,
-    process_file_upload,
-    show_hop_slider,
-    swap_visibility,
-    swap_buttons
 )
 import os
-import json
 
 app_name = "Polgen RVC"
 url_github = "https://github.com/Bebra777228/PolGen-RVC"
@@ -58,6 +51,16 @@ def save_to_wav2(file):
         return ""
     return file.name if hasattr(file, 'name') else str(file)
 
+def get_audio_dropdown_update(current_value=None):
+    """Собирает gr.update для дропдауна выбора аудио: список файлов из папки audios
+    плюс текущий выбранный путь (записанный/загруженный), чтобы значение всегда было в choices."""
+    audio_files = []
+    if os.path.exists("audios"):
+        audio_files = [os.path.join("audios", f) for f in os.listdir("audios") if f.endswith(('.wav', '.mp3', '.flac'))]
+    choices = list(dict.fromkeys([""] + ([current_value] if current_value else []) + audio_files))
+    value = current_value if current_value else (audio_files[0] if audio_files else "")
+    return gr.update(choices=choices, value=value)
+
 def change_choices2():
     if os.path.exists("audios"):
         audio_files = [os.path.join("audios", f) for f in os.listdir("audios") if f.endswith(('.wav', '.mp3', '.flac'))]
@@ -65,12 +68,14 @@ def change_choices2():
     return gr.Dropdown(choices=[""], value="")
 
 def inference_tab():
+    # Папка для аудиофайлов, которые пользователь добавляет через dropbox/запись
+    os.makedirs("audios", exist_ok=True)
     with gr.Tabs():
         with gr.TabItem("Inference"):
             gr.HTML(f"<h1> Easy GUI v2 (rejekts) - adapted to {app_name} 💻 </h1>")
 
             with gr.Row():
-                sid0 = gr.Dropdown(label="1. Choose your Model.", choices=get_folders(), value=get_folders()[0] if get_folders() else '')
+                sid0 = gr.Dropdown(label="1. Choose your Model.", choices=get_folders(), value=get_folders()[0] if get_folders() else None)
                 refresh_button = gr.Button("Refresh", variant="primary")
                 vc_transform0 = gr.Number(label="Optional: Change pitch here or leave at 0.", value=0)
                 spk_item = gr.Slider(
@@ -93,29 +98,31 @@ def inference_tab():
                         input_audio0 = gr.Dropdown(
                             label="2.Choose your audio.",
                             value="",
-                            choices=[]
+                            choices=[""]
                             )
                         
-                        dropbox.upload(fn=lambda file: (save_to_wav2(file), gr.Dropdown(update=True, choices=change_choices2().choices, value=save_to_wav2(file))), 
-                                     inputs=[dropbox], outputs=[input_audio0, input_audio0])
+                        dropbox.upload(fn=lambda file: get_audio_dropdown_update(save_to_wav2(file)), 
+                                     inputs=[dropbox], outputs=[input_audio0])
                         
                         refresh_button2 = gr.Button("Refresh", variant="primary", size='sm')
-                        refresh_button2.click(fn=lambda: gr.Dropdown(update=True, choices=change_choices2().choices), 
+                        refresh_button2.click(fn=lambda: get_audio_dropdown_update(), 
                                             inputs=[], outputs=[input_audio0])
                         
-                        record_button.change(fn=lambda file: (save_to_wav(file), gr.Dropdown(update=True, choices=change_choices2().choices, value=save_to_wav(file))),
-                                           inputs=[record_button], outputs=[input_audio0, input_audio0])
+                        record_button.change(fn=lambda file: get_audio_dropdown_update(save_to_wav2(file)),
+                                           inputs=[record_button], outputs=[input_audio0])
                 with gr.Column():
                     with gr.Accordion("Index Settings", open=True):
                         file_index1 = gr.Dropdown(
                             label="3. Path to your added.index file (if it didn't automatically find it.)",
                             choices=get_indexes(),
-                            value=get_index(),
+                            value=get_indexes()[0] if get_indexes() else None,
                             interactive=True,
                             )
                         refresh_button.click(
-                            fn=lambda: (gr.Dropdown(update=True, choices=get_folders(), value=get_folders()[0] if get_folders() else ""), 
-                                      gr.Dropdown(update=True, choices=get_indexes(), value=get_index())),
+                            fn=lambda: (
+                                gr.update(choices=get_folders(), value=get_folders()[0] if get_folders() else None),
+                                gr.update(choices=get_indexes(), value=get_indexes()[0] if get_indexes() else None),
+                            ),
                             inputs=[], outputs=[sid0, file_index1]
                             )
                         index_rate1 = gr.Slider(
@@ -261,7 +268,7 @@ def inference_tab():
                             interactive=True,
                         )
                         refresh_button.click(
-                            fn=lambda: gr.Dropdown(update=True, choices=get_indexes()),
+                            fn=lambda: gr.update(choices=get_indexes()),
                             inputs=[],
                             outputs=file_index4,
                         )
@@ -315,7 +322,7 @@ def inference_tab():
                         vc_output3 = gr.Textbox(label="Output info")
                     
                     but1.click(
-                        rvc_infer,
+                        rvc_batch_infer,
                         [
                             sid0,
                             dir_input,
@@ -326,23 +333,23 @@ def inference_tab():
                             f0_max,
                             protect,
                             volume_envelope,
-                            vc_transform1,
-                            None
+                            vc_transform1
                         ],
                         [vc_output3],
                     )
 
         with gr.TabItem("Text to Speech + RVC"):
+            default_language = list(edge_voices.keys())[0]
             with gr.Row():
                 tts_language = gr.Dropdown(
                     label="Select Language",
                     choices=list(edge_voices.keys()),
-                    value="Russian"
+                    value=default_language
                 )
                 tts_voice = gr.Dropdown(
                     label="Select TTS Voice",
-                    choices=edge_voices["Russian"],
-                    value=edge_voices["Russian"][0]
+                    choices=edge_voices[default_language],
+                    value=edge_voices[default_language][0]
                 )
                 tts_language.change(
                     fn=update_edge_voices,

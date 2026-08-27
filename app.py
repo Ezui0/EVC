@@ -6,7 +6,8 @@ from assets.logging_config import configure_logging
 from assets.model_installer import check_and_install_models
 
 configure_logging(True, False, "WARNING")
-check_and_install_models()
+# Флаг --offline (используется run-PolGen.sh) пропускает загрузку моделей при старте
+check_and_install_models(offline="--offline" in sys.argv)
 
 
 
@@ -62,8 +63,8 @@ if __name__ == "__main__":
             launch_gradio(server, port)
             break
         except OSError:
-            print(f"Не удалось запустить на порту {port}, повторите попытку на порту {port - 1}...")
-            port -= 1
+            print(f"Не удалось запустить на порту {port}, повторите попытку на порту {port + 1}...")
+            port += 1
         except Exception as error:
             print(f"Произошла ошибка при запуске Gradio: {error}")
             break

@@ -4,7 +4,11 @@ from urllib.parse import urlparse
 import gdown
 import gradio as gr
 import requests
-from mega import Mega
+
+try:
+    from mega import Mega
+except Exception:  # pragma: no cover — mega.py/tenacity может не поддерживать текущий Python
+    Mega = None
 
 
 # Универсальная функция для скачивания файла с разных источников
@@ -53,6 +57,8 @@ def download_from_pixeldrain(url, zip_name, progress):
 
 # Скачивание файла с Mega через библиотеку Mega
 def download_from_mega(url, zip_name, progress):
+    if Mega is None:
+        raise gr.Error("Библиотека mega.py недоступна в этом окружении. Скачайте модель по прямой ссылке (например HuggingFace).")
     progress(0.5, desc="[~] Загрузка модели с Mega...")
     m = Mega()
     m.download_url(url, dest_filename=str(zip_name))

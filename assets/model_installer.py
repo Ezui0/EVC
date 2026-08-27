@@ -19,26 +19,36 @@ def dl_model(link, model_name, dir_name):
     if os.path.exists(file_path):
         return  # Пропускаем загрузку, если файл уже существует
 
-    r = requests.get(f"{link}{model_name}", stream=True)
-    r.raise_for_status()
-
-    # Получаем общий размер файла
-    total_size = int(r.headers.get("content-length", 0))
-    # Используем tqdm для отображения прогресса
-    with open(file_path, "wb") as f, tqdm(
-        desc=f"Downloading {model_name}",
-        total=total_size,
-        unit="iB",
-        unit_scale=True,
-        unit_divisor=1024,
-    ) as bar:
-        for chunk in r.iter_content(chunk_size=8192):
-            f.write(chunk)
-            bar.update(len(chunk))
-
-
-def check_and_install_models():
     try:
+        r = requests.get(f"{link}{model_name}", stream=True, timeout=(10, 300))
+        r.raise_for_status()
+
+        # Получаем общий размер файла
+        total_size = int(r.headers.get("content-length", 0))
+        # Используем tqdm для отображения прогресса
+        with open(file_path, "wb") as f, tqdm(
+            desc=f"Downloading {model_name}",
+            total=total_size,
+            unit="iB",
+            unit_scale=True,
+            unit_divisor=1024,
+        ) as bar:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+                bar.update(len(chunk))
+    except Exception:
+        # Удаляем недокачанный файл, чтобы следующая попытка началась заново
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise
+
+
+def check_and_install_models(offline=False):
+    try:
+        if offline:
+            print("Работаем в OFFLINE режиме — загрузка моделей пропущена.")
+            return
+
         predictors_names = ["rmvpe.pt", "fcpe.pt"]
         for model in predictors_names:
             dl_model(PREDICTORS, model, PREDICTORS_DIR)

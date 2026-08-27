@@ -9,5 +9,13 @@
 *.wav
 
 *.txt
+!requirements.txt
 
 *.ipynb_checkpoints
+
+__pycache__/
+*.pyc
+env/
+models/
+output/
+audios/
