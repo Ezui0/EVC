@@ -279,11 +279,12 @@ def inference_tab():
                         but1 = gr.Button("Convert", variant="primary")
                         vc_output3 = gr.Textbox(label="Output info")
                     
+                    # Batch conversion - pass all 11 arguments including f0_file (None for batch)
                     but1.click(
                         rvc_infer,
                         [
                             sid0,
-                            dir_input,
+                            dir_input,  # directory input instead of single file
                             f0method1,
                             filter_radius1,
                             index_rate2,
@@ -292,7 +293,7 @@ def inference_tab():
                             protect1,
                             crepe_hop_length,
                             vc_transform1,
-                            None
+                            None  # f0_file is None for batch processing
                         ],
                         [vc_output3],
                     )
