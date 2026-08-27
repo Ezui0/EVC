@@ -1,20 +1,19 @@
+import sys
+from typing import Any
+import gradio as gr
+from tabs.inference import inference_tab
 from assets.logging_config import configure_logging
 from assets.model_installer import check_and_install_models
 
 configure_logging(True, False, "WARNING")
 check_and_install_models()
 
-import sys
-from typing import Any
 
-import gradio as gr
-from tabs.inference import inference_tab
 
 DEFAULT_SERVER_NAME = "127.0.0.1"
 DEFAULT_PORT = 4000
 MAX_PORT_ATTEMPTS = 10
 
-output_message_component = output_message()
 
 
 
