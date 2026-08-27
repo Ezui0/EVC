@@ -37,12 +37,10 @@ with gr.Blocks(
     
 def launch_gradio(server_name: str, server_port: int) -> None:
     app.launch(
-        favicon_path="assets/logo.ico",
         share="--share" in sys.argv,
         inbrowser="--open" in sys.argv,
         server_name=server_name,
         server_port=server_port,
-        show_error=True,
     )
 
 
