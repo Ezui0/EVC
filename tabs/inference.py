@@ -70,9 +70,9 @@ def inference_tab():
             gr.HTML(f"<h1> Easy GUI v2 (rejekts) - adapted to {app_name} 💻 </h1>")
 
             with gr.Row():
-                sid0 = gr.Dropdown(label="1.Choose your Model.", choices=get_folders(), value=get_folders()[0] if get_folders() else '')
+                sid0 = gr.Dropdown(label="1. Choose your Model.", choices=get_folders(), value=get_folders()[0] if get_folders() else '')
                 refresh_button = gr.Button("Refresh", variant="primary")
-                vc_transform0 = gr.Number(label="Optional: You can change the pitch here or leave it at 0.", value=0)
+                vc_transform0 = gr.Number(label="Optional: Change pitch here or leave at 0.", value=0)
                 spk_item = gr.Slider(
                     minimum=0,
                     maximum=2333,
@@ -126,52 +126,87 @@ def inference_tab():
                             interactive=True,
                             )
                     vc_output2 = gr.Audio(label="Output Audio (Click on the Three Dots in the Right Corner to Download)")
-                    f0method0 = gr.Radio(
-                            label="Optional: Change the Pitch Extraction Algorithm.",
-                            choices=["pm", "harvest", "dio", "crepe", "crepe-tiny", "mangio-crepe", "mangio-crepe-tiny"],
-                            value="pm",
-                            interactive=True,
-                        )
-                    with gr.Accordion("More", open=False):
-                        crepe_hop_length = gr.Slider(
-                            minimum=1,
-                            maximum=512,
-                            step=1,
-                            label="crepe_hop_length",
-                            value=160,
-                            interactive=True
-                            )
-                        filter_radius0 = gr.Slider(
-                            minimum=0,
-                            maximum=7,
-                            label="Median filtering radius (>=3 enables)",
-                            value=3,
-                            step=1,
-                            interactive=True,
-                            )
-                        resample_sr0 = gr.Slider(
-                            minimum=0,
-                            maximum=48000,
-                            label="Resample to final sample rate (0 = no resample)",
-                            value=0,
-                            step=1,
-                            interactive=True,
-                            )
-                        rms_mix_rate0 = gr.Slider(
-                            minimum=0,
-                            maximum=1,
-                            label="Volume envelope mix ratio",
-                            value=1,
-                            interactive=True,
-                            )
-                        protect0 = gr.Slider(
-                            minimum=0,
-                            maximum=0.5,
-                            label="Protect voiceless consonants",
-                            value=0.33,
-                            step=0.01,
-                            interactive=True,
-                            )
+                    
+                    # NEW SETTINGS REPLACING OLD ONES
+                    with gr.Accordion("Conversion Settings", open=False):
+                        with gr.Column(variant="panel"):
+                            with gr.Accordion("Standard Settings", open=False):
+                                with gr.Group():
+                                    with gr.Column():
+                                        f0_method = gr.Dropdown(
+                                            value="rmvpe",
+                                            label="Pitch extraction method",
+                                            choices=["rmvpe", "fcpe", "crepe", "crepe-tiny"],
+                                            interactive=True,
+                                            visible=True,
+                                        )
+                                        hop_length = gr.Slider(
+                                            minimum=8,
+                                            maximum=512,
+                                            step=8,
+                                            value=128,
+                                            label="Hop length",
+                                            info="Smaller values lead to longer conversions, increasing risk of voice artifacts, but achieve more accurate pitch transfer.",
+                                            interactive=True,
+                                            visible=False,
+                                        )
+                                        index_rate = gr.Slider(
+                                            minimum=0,
+                                            maximum=1,
+                                            step=0.1,
+                                            value=0,
+                                            label="Index influence",
+                                            info="Influence of the index file; Higher values mean more influence. Lower values can help soften artifacts in the audio.",
+                                            interactive=True,
+                                            visible=True,
+                                        )
+                                        volume_envelope = gr.Slider(
+                                            minimum=0,
+                                            maximum=1,
+                                            step=0.01,
+                                            value=1,
+                                            label="RMS mix rate",
+                                            info="Replace or mix with the output volume envelope. Closer to 1 uses more output envelope.",
+                                            interactive=True,
+                                            visible=True,
+                                        )
+                                        protect = gr.Slider(
+                                            minimum=0,
+                                            maximum=0.5,
+                                            step=0.01,
+                                            value=0.5,
+                                            label="Consonant protection",
+                                            info="Protect consonants and breath sounds to avoid electroacoustic breaks. Max value 0.5 provides full protection.",
+                                            interactive=True,
+                                            visible=True,
+                                        )
+
+                            with gr.Accordion("Advanced Settings", open=False):
+                                with gr.Column():
+                                    with gr.Row():
+                                        f0_min = gr.Slider(
+                                            minimum=1,
+                                            maximum=120,
+                                            step=1,
+                                            value=50,
+                                            label="Minimum pitch range",
+                                            info="Defines the lower bound of the pitch range for fundamental frequency (F0) detection.",
+                                            interactive=True,
+                                            visible=True,
+                                        )
+                                        f0_max = gr.Slider(
+                                            minimum=380,
+                                            maximum=16000,
+                                            step=1,
+                                            value=1100,
+                                            label="Maximum pitch range",
+                                            info="Defines the upper bound of the pitch range for fundamental frequency (F0) detection.",
+                                            interactive=True,
+                                            visible=True,
+                                        )
+                    
+                    # REMOVED f0method0, crepe_hop_length, filter_radius0, resample_sr0, rms_mix_rate0
+                    # Now using new settings
             with gr.Row():
                 vc_output1 = gr.Textbox("")
                 f0_file = gr.File(label="F0 curve file (optional)", visible=False)
@@ -181,13 +216,13 @@ def inference_tab():
                     [
                         sid0,
                         input_audio0,
-                        f0method0,
-                        filter_radius0,
-                        index_rate1,
-                        resample_sr0,
-                        rms_mix_rate0,
-                        protect0,
-                        crepe_hop_length,
+                        f0_method,  # Changed from f0method0
+                        hop_length,  # Changed from filter_radius0
+                        index_rate,  # Changed from index_rate1
+                        f0_min,      # Changed from resample_sr0
+                        f0_max,      # Changed from rms_mix_rate0
+                        protect,     # Changed from protect0
+                        volume_envelope, # Changed from crepe_hop_length
                         vc_transform0,
                         f0_file
                     ],
@@ -279,21 +314,20 @@ def inference_tab():
                         but1 = gr.Button("Convert", variant="primary")
                         vc_output3 = gr.Textbox(label="Output info")
                     
-                    # Batch conversion - pass all 11 arguments including f0_file (None for batch)
                     but1.click(
                         rvc_infer,
                         [
                             sid0,
-                            dir_input,  # directory input instead of single file
-                            f0method1,
-                            filter_radius1,
-                            index_rate2,
-                            resample_sr1,
-                            rms_mix_rate1,
-                            protect1,
-                            crepe_hop_length,
+                            dir_input,
+                            f0_method,
+                            hop_length,
+                            index_rate,
+                            f0_min,
+                            f0_max,
+                            protect,
+                            volume_envelope,
                             vc_transform1,
-                            None  # f0_file is None for batch processing
+                            None
                         ],
                         [vc_output3],
                     )
@@ -303,12 +337,12 @@ def inference_tab():
                 tts_language = gr.Dropdown(
                     label="Select Language",
                     choices=list(edge_voices.keys()),
-                    value="Русский"
+                    value="Russian"
                 )
                 tts_voice = gr.Dropdown(
                     label="Select TTS Voice",
-                    choices=edge_voices["Русский"],
-                    value=edge_voices["Русский"][0]
+                    choices=edge_voices["Russian"],
+                    value=edge_voices["Russian"][0]
                 )
                 tts_language.change(
                     fn=update_edge_voices,
@@ -338,13 +372,13 @@ def inference_tab():
                 rvc_edgetts_infer,
                 inputs=[
                     tts_rvc_model,
-                    f0method0,
-                    filter_radius0,
-                    index_rate1,
-                    resample_sr0,
-                    rms_mix_rate0,
-                    protect0,
-                    crepe_hop_length,
+                    f0_method,
+                    hop_length,
+                    index_rate,
+                    f0_min,
+                    f0_max,
+                    protect,
+                    volume_envelope,
                     vc_transform0,
                     tts_voice,
                     tts_text,
@@ -426,12 +460,3 @@ def inference_tab():
                 """
                 )
 
-if __name__ == "__main__":
-    app = gr.Blocks()
-    with app:
-        inference_tab()
-    app.queue(concurrency_count=511, max_size=1022).launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        share=True
-    )
