@@ -99,6 +99,6 @@ If you have any questions or suggestions, please reach out to me via [Telegram](
 
 # Contributors:
 
-<a href="https://github.com/Bebra777228/PolGen-RVC/graphs/contributors" target="_blank">
-  <img src="https://contrib.rocks/image?repo=Bebra777228/PolGen-RVC" />
+<a href="https://github.com/Ezui0/EVC/graphs/contributors" target="_blank">
+  <img src="https://contrib.rocks/image?repo=Ezui0/EVC" />
 </a>
