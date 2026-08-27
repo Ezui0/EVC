@@ -64,76 +64,6 @@ def change_choices2():
         return gr.Dropdown(choices=[""] + audio_files, value=audio_files[0] if audio_files else "")
     return gr.Dropdown(choices=[""], value="")
 
-# Fix for the inference function to handle None values
-def safe_rvc_infer(*args):
-    # Filter out None values and provide defaults
-    cleaned_args = []
-    for arg in args:
-        if arg is None:
-            cleaned_args.append("")  # or appropriate default
-        else:
-            cleaned_args.append(arg)
-    
-    # Ensure we have the right number of arguments
-    while len(cleaned_args) < 11:
-        cleaned_args.append("")  # default empty value
-    
-    try:
-        result = rvc_infer(*cleaned_args[:11])
-        return result
-    except Exception as e:
-        print(f"Error in inference: {e}")
-        return "Error occurred", None
-
-def safe_rvc_edgetts_infer(*args):
-    # Filter out None values
-    cleaned_args = []
-    for arg in args:
-        if arg is None:
-            cleaned_args.append("")  # or appropriate default
-        else:
-            cleaned_args.append(arg)
-    
-    while len(cleaned_args) < 15:
-        cleaned_args.append("")
-    
-    try:
-        result = rvc_edgetts_infer(*cleaned_args[:15])
-        return result
-    except Exception as e:
-        print(f"Error in TTS inference: {e}")
-        return None
-
-def safe_download_from_url(zip_link, model_name):
-    if zip_link is None or zip_link == "":
-        return "Error: Please provide a valid ZIP download link"
-    if model_name is None or model_name == "":
-        return "Error: Please provide a model name"
-    try:
-        return download_from_url(zip_link, model_name)
-    except Exception as e:
-        return f"Error downloading model: {str(e)}"
-
-def safe_upload_zip_file(zip_file, model_name):
-    if zip_file is None:
-        return "Error: Please upload a ZIP file"
-    if model_name is None or model_name == "":
-        return "Error: Please provide a model name"
-    try:
-        return upload_zip_file(zip_file, model_name)
-    except Exception as e:
-        return f"Error uploading ZIP: {str(e)}"
-
-def safe_upload_separate_files(pth_file, index_file, model_name):
-    if pth_file is None:
-        return "Error: Please upload a .pth file"
-    if model_name is None or model_name == "":
-        return "Error: Please provide a model name"
-    try:
-        return upload_separate_files(pth_file, index_file, model_name)
-    except Exception as e:
-        return f"Error uploading files: {str(e)}"
-
 def inference_tab():
     with gr.Tabs():
         with gr.TabItem("Inference"):
@@ -165,10 +95,6 @@ def inference_tab():
                             value="",
                             choices=[]
                             )
-                        # Fix: Use event handlers properly
-                        def update_audio_from_dropbox(file):
-                            val = save_to_wav2(file)
-                            return gr.Dropdown(update=True, value=val, choices=[val] + (change_choices2().choices if hasattr(change_choices2(), 'choices') else []))
                         
                         dropbox.upload(fn=lambda file: (save_to_wav2(file), gr.Dropdown(update=True, choices=change_choices2().choices, value=save_to_wav2(file))), 
                                      inputs=[dropbox], outputs=[input_audio0, input_audio0])
@@ -176,10 +102,6 @@ def inference_tab():
                         refresh_button2 = gr.Button("Refresh", variant="primary", size='sm')
                         refresh_button2.click(fn=lambda: gr.Dropdown(update=True, choices=change_choices2().choices), 
                                             inputs=[], outputs=[input_audio0])
-                        
-                        def update_from_recording(file):
-                            val = save_to_wav(file)
-                            return gr.Dropdown(update=True, value=val, choices=[val] + (change_choices2().choices if hasattr(change_choices2(), 'choices') else []))
                         
                         record_button.change(fn=lambda file: (save_to_wav(file), gr.Dropdown(update=True, choices=change_choices2().choices, value=save_to_wav(file))),
                                            inputs=[record_button], outputs=[input_audio0, input_audio0])
@@ -254,9 +176,8 @@ def inference_tab():
                 vc_output1 = gr.Textbox("")
                 f0_file = gr.File(label="F0 curve file (optional)", visible=False)
                 
-                # Fix: Use safe wrapper for inference
                 but0.click(
-                    safe_rvc_infer,
+                    rvc_infer,
                     [
                         sid0,
                         input_audio0,
@@ -357,9 +278,9 @@ def inference_tab():
                         )
                         but1 = gr.Button("Convert", variant="primary")
                         vc_output3 = gr.Textbox(label="Output info")
-                    # Fix: Use safe wrapper for batch inference
+                    
                     but1.click(
-                        safe_rvc_infer,
+                        rvc_infer,
                         [
                             sid0,
                             dir_input,
@@ -388,7 +309,6 @@ def inference_tab():
                     choices=edge_voices["Русский"],
                     value=edge_voices["Русский"][0]
                 )
-                # Update voice dropdown when language changes
                 tts_language.change(
                     fn=update_edge_voices,
                     inputs=[tts_language],
@@ -412,9 +332,9 @@ def inference_tab():
                 )
             with gr.Row():
                 tts_convert_btn = gr.Button("Convert TTS to RVC", variant="primary")
-            # Fix: Use safe wrapper for TTS inference
+            
             tts_convert_btn.click(
-                safe_rvc_edgetts_infer,
+                rvc_edgetts_infer,
                 inputs=[
                     tts_rvc_model,
                     f0method0,
@@ -457,9 +377,8 @@ def inference_tab():
                         )
                     download_btn = gr.Button("Download model", variant="primary")
                 
-                # Fix: Use safe wrapper for download
                 download_btn.click(
-                    safe_download_from_url,
+                    download_from_url,
                     inputs=[zip_link, model_name],
                     outputs=output_message,
                 )
@@ -474,9 +393,8 @@ def inference_tab():
                         )
                     upload_zip_btn = gr.Button("Upload model", variant="primary")
                 
-                # Fix: Use safe wrapper for ZIP upload
                 upload_zip_btn.click(
-                    safe_upload_zip_file,
+                    upload_zip_file,
                     inputs=[zip_file, model_name_zip],
                     outputs=output_message,
                 )
@@ -493,9 +411,8 @@ def inference_tab():
                         )
                     upload_files_btn = gr.Button("Upload model", variant="primary")
                 
-                # Fix: Use safe wrapper for separate files upload
                 upload_files_btn.click(
-                    safe_upload_separate_files,
+                    upload_separate_files,
                     inputs=[pth_file, index_file, model_name_files],
                     outputs=output_message,
                 )
