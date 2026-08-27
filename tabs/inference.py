@@ -24,9 +24,10 @@ def get_indexes():
     indexes = []
     for model in model_names:
         model_dir = os.path.join(RVC_MODELS_DIR, model)
-        for f in os.listdir(model_dir):
-            if f.endswith('.index'):
-                indexes.append(os.path.join(model_dir, f))
+        if os.path.exists(model_dir):
+            for f in os.listdir(model_dir):
+                if f.endswith('.index'):
+                    indexes.append(os.path.join(model_dir, f))
     return indexes
 
 def get_index():
@@ -42,10 +43,85 @@ def save_to_wav(file):
     return file
 
 def save_to_wav2(file):
-    return file.name if hasattr(file, 'name') else file
+    if file is None:
+        return ""
+    return file.name if hasattr(file, 'name') else str(file)
 
 def change_choices2():
-    return gr.Dropdown(choices=[""] + [os.path.join("audios", f) for f in os.listdir("audios") if f.endswith(('.wav', '.mp3', '.flac'))] if os.path.exists("audios") else [])
+    if os.path.exists("audios"):
+        audio_files = [os.path.join("audios", f) for f in os.listdir("audios") if f.endswith(('.wav', '.mp3', '.flac'))]
+        return gr.Dropdown(choices=[""] + audio_files, value=audio_files[0] if audio_files else "")
+    return gr.Dropdown(choices=[""], value="")
+
+# Fix for the inference function to handle None values
+def safe_rvc_infer(*args):
+    # Filter out None values and provide defaults
+    cleaned_args = []
+    for arg in args:
+        if arg is None:
+            cleaned_args.append("")  # or appropriate default
+        else:
+            cleaned_args.append(arg)
+    
+    # Ensure we have the right number of arguments
+    while len(cleaned_args) < 11:
+        cleaned_args.append("")  # default empty value
+    
+    try:
+        result = rvc_infer(*cleaned_args[:11])
+        return result
+    except Exception as e:
+        print(f"Error in inference: {e}")
+        return "Error occurred", None
+
+def safe_rvc_edgetts_infer(*args):
+    # Filter out None values
+    cleaned_args = []
+    for arg in args:
+        if arg is None:
+            cleaned_args.append("")  # or appropriate default
+        else:
+            cleaned_args.append(arg)
+    
+    while len(cleaned_args) < 15:
+        cleaned_args.append("")
+    
+    try:
+        result = rvc_edgetts_infer(*cleaned_args[:15])
+        return result
+    except Exception as e:
+        print(f"Error in TTS inference: {e}")
+        return None
+
+def safe_download_from_url(zip_link, model_name):
+    if zip_link is None or zip_link == "":
+        return "Error: Please provide a valid ZIP download link"
+    if model_name is None or model_name == "":
+        return "Error: Please provide a model name"
+    try:
+        return download_from_url(zip_link, model_name)
+    except Exception as e:
+        return f"Error downloading model: {str(e)}"
+
+def safe_upload_zip_file(zip_file, model_name):
+    if zip_file is None:
+        return "Error: Please upload a ZIP file"
+    if model_name is None or model_name == "":
+        return "Error: Please provide a model name"
+    try:
+        return upload_zip_file(zip_file, model_name)
+    except Exception as e:
+        return f"Error uploading ZIP: {str(e)}"
+
+def safe_upload_separate_files(pth_file, index_file, model_name):
+    if pth_file is None:
+        return "Error: Please upload a .pth file"
+    if model_name is None or model_name == "":
+        return "Error: Please provide a model name"
+    try:
+        return upload_separate_files(pth_file, index_file, model_name)
+    except Exception as e:
+        return f"Error uploading files: {str(e)}"
 
 def inference_tab():
     with gr.Tabs():
@@ -78,12 +154,24 @@ def inference_tab():
                             value="",
                             choices=[]
                             )
-                        dropbox.upload(fn=save_to_wav2, inputs=[dropbox], outputs=[input_audio0])
-                        dropbox.upload(fn=change_choices2, inputs=[], outputs=[input_audio0])
+                        # Fix: Use event handlers properly
+                        def update_audio_from_dropbox(file):
+                            val = save_to_wav2(file)
+                            return gr.Dropdown(update=True, value=val, choices=[val] + (change_choices2().choices if hasattr(change_choices2(), 'choices') else []))
+                        
+                        dropbox.upload(fn=lambda file: (save_to_wav2(file), gr.Dropdown(update=True, choices=change_choices2().choices, value=save_to_wav2(file))), 
+                                     inputs=[dropbox], outputs=[input_audio0, input_audio0])
+                        
                         refresh_button2 = gr.Button("Refresh", variant="primary", size='sm')
-                        refresh_button2.click(fn=change_choices2, inputs=[], outputs=[input_audio0])
-                        record_button.change(fn=save_to_wav, inputs=[record_button], outputs=[input_audio0])
-                        record_button.change(fn=change_choices2, inputs=[], outputs=[input_audio0])
+                        refresh_button2.click(fn=lambda: gr.Dropdown(update=True, choices=change_choices2().choices), 
+                                            inputs=[], outputs=[input_audio0])
+                        
+                        def update_from_recording(file):
+                            val = save_to_wav(file)
+                            return gr.Dropdown(update=True, value=val, choices=[val] + (change_choices2().choices if hasattr(change_choices2(), 'choices') else []))
+                        
+                        record_button.change(fn=lambda file: (save_to_wav(file), gr.Dropdown(update=True, choices=change_choices2().choices, value=save_to_wav(file))),
+                                           inputs=[record_button], outputs=[input_audio0, input_audio0])
                 with gr.Column():
                     with gr.Accordion("Index Settings", open=True):
                         file_index1 = gr.Dropdown(
@@ -93,7 +181,9 @@ def inference_tab():
                             interactive=True,
                             )
                         refresh_button.click(
-                            fn=change_choices, inputs=[], outputs=[sid0, file_index1]
+                            fn=lambda: (gr.Dropdown(update=True, choices=get_model_names(), value=get_model_names()[0] if get_model_names() else ""), 
+                                      gr.Dropdown(update=True, choices=get_indexes(), value=get_index())),
+                            inputs=[], outputs=[sid0, file_index1]
                             )
                         index_rate1 = gr.Slider(
                             minimum=0,
@@ -153,8 +243,9 @@ def inference_tab():
                 vc_output1 = gr.Textbox("")
                 f0_file = gr.File(label="F0 curve file (optional)", visible=False)
                 
+                # Fix: Use safe wrapper for inference
                 but0.click(
-                    rvc_infer,
+                    safe_rvc_infer,
                     [
                         sid0,
                         input_audio0,
@@ -203,7 +294,7 @@ def inference_tab():
                             interactive=True,
                         )
                         refresh_button.click(
-                            fn=lambda: change_choices()[1],
+                            fn=lambda: gr.Dropdown(update=True, choices=get_indexes()),
                             inputs=[],
                             outputs=file_index4,
                         )
@@ -255,8 +346,9 @@ def inference_tab():
                         )
                         but1 = gr.Button("Convert", variant="primary")
                         vc_output3 = gr.Textbox(label="Output info")
+                    # Fix: Use safe wrapper for batch inference
                     but1.click(
-                        rvc_infer,
+                        safe_rvc_infer,
                         [
                             sid0,
                             dir_input,
@@ -292,8 +384,9 @@ def inference_tab():
                 tts_rvc_model = gr.Dropdown(label="RVC Model for conversion", choices=get_model_names())
             with gr.Row():
                 tts_convert_btn = gr.Button("Convert TTS to RVC", variant="primary")
+            # Fix: Use safe wrapper for TTS inference
             tts_convert_btn.click(
-                rvc_edgetts_infer,
+                safe_rvc_edgetts_infer,
                 inputs=[
                     tts_rvc_model,
                     f0method0,
@@ -314,7 +407,7 @@ def inference_tab():
             )
 
         with gr.TabItem("Download Model"):
-            output_message = gr.Text(label="Output Message", interactive=False)
+            output_message = gr.Textbox(label="Output Message", interactive=False)
             
             with gr.Accordion("Download ZIP from URL", open=True):
                 gr.HTML(
@@ -329,15 +422,16 @@ def inference_tab():
                 )
                 with gr.Column():
                     with gr.Group():
-                        zip_link = gr.Text(label="ZIP download link")
-                        model_name = gr.Text(
+                        zip_link = gr.Textbox(label="ZIP download link")
+                        model_name = gr.Textbox(
                             label="Model name",
                             info="Give your uploaded model a unique name different from other voice models.",
                         )
                     download_btn = gr.Button("Download model", variant="primary")
                 
+                # Fix: Use safe wrapper for download
                 download_btn.click(
-                    download_from_url,
+                    safe_download_from_url,
                     inputs=[zip_link, model_name],
                     outputs=output_message,
                 )
@@ -346,14 +440,15 @@ def inference_tab():
                 with gr.Column():
                     with gr.Group():
                         zip_file = gr.File(label="Zip file", file_types=[".zip"], file_count="single")
-                        model_name_zip = gr.Text(
+                        model_name_zip = gr.Textbox(
                             label="Model name",
                             info="Give your uploaded model a unique name different from other voice models.",
                         )
                     upload_zip_btn = gr.Button("Upload model", variant="primary")
                 
+                # Fix: Use safe wrapper for ZIP upload
                 upload_zip_btn.click(
-                    upload_zip_file,
+                    safe_upload_zip_file,
                     inputs=[zip_file, model_name_zip],
                     outputs=output_message,
                 )
@@ -364,27 +459,31 @@ def inference_tab():
                         with gr.Row(equal_height=False):
                             pth_file = gr.File(label="pth file", file_types=[".pth"], file_count="single")
                             index_file = gr.File(label="index file", file_types=[".index"], file_count="single")
-                        model_name_files = gr.Text(
+                        model_name_files = gr.Textbox(
                             label="Model name",
                             info="Give your uploaded model a unique name different from other voice models.",
                         )
                     upload_files_btn = gr.Button("Upload model", variant="primary")
                 
+                # Fix: Use safe wrapper for separate files upload
                 upload_files_btn.click(
-                    upload_separate_files,
+                    safe_upload_separate_files,
                     inputs=[pth_file, index_file, model_name_files],
                     outputs=output_message,
                 )
             
             with gr.Row():
                 gr.Markdown(
-                """
-                Original RVC:https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI
+                f"""
+                Original RVC: https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI
                 {app_name}: {url_github}
                 """
                 )
 
 if __name__ == "__main__":
+    app = gr.Blocks()
+    with app:
+        inference_tab()
     app.queue(concurrency_count=511, max_size=1022).launch(
         server_name="0.0.0.0",
         server_port=7860,
