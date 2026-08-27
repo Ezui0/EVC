@@ -18,7 +18,7 @@ MAX_PORT_ATTEMPTS = 10
 
 
 with gr.Blocks(
-    title="EVC" if not is_offline_mode() else "EVC (offline)",
+    title="EVC",
     css="footer{display:none !important}",
     theme=gr.themes.Base(
         primary_hue="green",
