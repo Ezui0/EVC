@@ -1,6 +1,14 @@
-# Dependencies untuk EVC (PolGen fork)
-# torch/torchaudio dipasang terpisah oleh installer (index CUDA resmi PyTorch)
-gradio>=4.0
+# gradio
+
+gradio==4.36.0
+gradio_client==1.0.1
+grpcio==1.66.1
+h11==0.14.0
+httpcore==1.0.5
+httpx==0.27.2
+huggingface-hub==0.24.6
+
+# main deps
 requests
 tqdm
 edge-tts>=6.1.0
@@ -15,3 +23,9 @@ torchfcpe
 omegaconf
 gdown
 mega.py
+yt-dlp
+audio-separator[gpu]
+
+# extra 
+pydantic==2.8.2
+pydantic_core==2.20.1
