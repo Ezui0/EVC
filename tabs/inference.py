@@ -78,15 +78,7 @@ def inference_tab():
                 sid0 = gr.Dropdown(label="1. Choose your Model.", choices=get_folders(), value=get_folders()[0] if get_folders() else None)
                 refresh_button = gr.Button("Refresh", variant="primary")
                 vc_transform0 = gr.Number(label="Optional: Change pitch here or leave at 0.", value=0)
-                spk_item = gr.Slider(
-                    minimum=0,
-                    maximum=2333,
-                    step=1,
-                    label="Please select speaker id",
-                    value=0,
-                    visible=False,
-                    interactive=True,
-                )
+                spk_item = gr.Slider(minimum=0,maximum=2333,step=1,label="Please select speaker id",value=0,visible=False,interactive=True)
                 but0 = gr.Button("Convert", variant="primary")
             with gr.Row():
                 with gr.Column():
