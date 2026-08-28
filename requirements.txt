@@ -29,3 +29,4 @@ audio-separator[gpu]
 # extra 
 pydantic==2.8.2
 pydantic_core==2.20.1
+pycryptodome>=3.9.6,<4.0.0
