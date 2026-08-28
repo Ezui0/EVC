@@ -4,11 +4,8 @@ from urllib.parse import urlparse
 import gdown
 import gradio as gr
 import requests
-
-try:
-    from mega import Mega
-except Exception:  # pragma: no cover - mega.py/tenacity may not support the current Python
-    Mega = None
+from rvc.lib.download.hf import HF_download_file
+from rvc.lib.download import mega, mediafire, pixeldrain
 
 
 # Universal function to download a file from various sources
@@ -60,8 +57,7 @@ def download_from_mega(url, zip_name, progress):
     if Mega is None:
         raise gr.Error("The mega.py library is unavailable in this environment. Download the model via a direct link (e.g. HuggingFace).")
     progress(0.5, desc="[~] Downloading model from Mega...")
-    m = Mega()
-    m.download_url(url, dest_filename=str(zip_name))
+    mega.mega_download_url(url, dest_filename=str(zip_name))
 
 
 # Download a file from Yandex Disk via its public API
