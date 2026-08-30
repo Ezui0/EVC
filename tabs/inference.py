@@ -14,6 +14,7 @@ from tabs.components.modules import (
 )
 import os
 
+app_name = "Polgen RVC"
 
 def get_model_names():
     if not os.path.exists(RVC_MODELS_DIR):
