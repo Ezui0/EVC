@@ -5,7 +5,7 @@ import os, sys
 
 BASE_DIR = sys.path.append(os.getcwd())
 
-output_dir = os.path.join(BASE_DIR, 'song_output')
+output_dir = os.path.join(BASE_DIR, 'audios')
 
 def raise_exception(error_msg):
     raise gr.Error(error_msg)
@@ -52,7 +52,7 @@ def yt_download(link):
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         result = ydl.extract_info(link, download=True)
-        download_path = ydl.prepare_filename(result, outtmpl='%(title)s.mp3')
+        download_path = ydl.prepare_filename(result, outtmpl=f'{output_dir}/%(title)s.mp3')
 
     if urlparse(song_input).scheme == 'https':
         input_type = 'yt'
@@ -68,6 +68,11 @@ def yt_download(link):
 
 
 def dltabs():
+    with gr.TabItem("Download Music"):
+        url_input = gr.Texbox(label="URL YT")
+        optau = gr.Audio(label="OPT") 
+        dl_yt = gr.Button("Download")
+        dl_yt.click(fn=yt_download, inputs=[url_input], outputs=[optau])
     with gr.TabItem("Download Model"):
         output_message = gr.Textbox(label="Output Message", interactive=False)
         
