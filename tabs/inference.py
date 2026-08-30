@@ -183,29 +183,13 @@ def inference_tab():
                             with gr.Accordion("Advanced Settings", open=False):
                                 with gr.Column():
                                     with gr.Row():
-                                        f0_min = gr.Slider(
-                                            minimum=1,
-                                            maximum=120,
-                                            step=1,
-                                            value=50,
-                                            label="Minimum pitch range",
-                                            info="Defines the lower bound of the pitch range for fundamental frequency (F0) detection.",
-                                            interactive=True,
-                                            visible=True,
-                                        )
-                                        f0_max = gr.Slider(
-                                            minimum=380,
-                                            maximum=16000,
-                                            step=1,
-                                            value=1100,
-                                            label="Maximum pitch range",
-                                            info="Defines the upper bound of the pitch range for fundamental frequency (F0) detection.",
-                                            interactive=True,
-                                            visible=True,
-                                        )
+                                        f0_min = gr.Slider(minimum=1,maximum=120,step=1,value=50,label="Minimum pitch range",info="Defines the lower bound of the pitch range for fundamental frequency (F0) detection.",interactive=True,visible=True)                                                                                                                                                                                                                                                                                                               
+                                        f0_max = gr.Slider(minimum=380,maximum=16000,step=1,value=1100,label="Maximum pitch range",info="Defines the upper bound of the pitch range for fundamental frequency (F0) detection.",interactive=True,visible=True)
+                                    with gr.Row():
+                                        use_uvr = gr.Checkbox(label="Use UVR for Separating Vocals")
+                                        is_backing = gr.Checkbox(label="Use backing vocal")
+                                        
                     
-                    # REMOVED f0method0, crepe_hop_length, filter_radius0, resample_sr0, rms_mix_rate0
-                    # Now using new settings
             with gr.Row():
                 vc_output1 = gr.Textbox("")
                 f0_file = gr.File(label="F0 curve file (optional)", visible=False)
@@ -215,19 +199,21 @@ def inference_tab():
                     [
                         sid0,
                         input_audio0,
-                        f0_method,  # Changed from f0method0
-                        hop_length,  # Changed from filter_radius0
-                        index_rate,  # Changed from index_rate1
-                        f0_min,      # Changed from resample_sr0
-                        f0_max,      # Changed from rms_mix_rate0
-                        protect,     # Changed from protect0
-                        volume_envelope, # Changed from crepe_hop_length
+                        f0_method,
+                        hop_length,  
+                        index_rate,
+                        f0_min,      
+                        f0_max,
+                        use_uvr, 
+                        is_backing,
+                        protect,     
+                        volume_envelope, 
                         vc_transform0,
                         f0_file
                     ],
                     [vc_output1, vc_output2],
                 )
-            with gr.Accordion("Batch Conversion",open=False):
+            with gr.Accordion("Batch Conversion",open=False, visible=False):
                 with gr.Row():
                     with gr.Column():
                         vc_transform1 = gr.Number(
