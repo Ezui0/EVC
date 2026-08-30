@@ -83,7 +83,7 @@ def inference_tab():
             with gr.Row():
                 with gr.Column():
                     with gr.Row():
-                        dropbox = gr.File(label="Drop your audio here & hit the Reload button.")
+                        dropbox = gr.Audio(label="Drop your audio here & hit the Reload button.")
                     with gr.Row():
                         record_button=gr.Audio(sources="microphone", label="OR Record audio.", type="filepath")
                     with gr.Row():
