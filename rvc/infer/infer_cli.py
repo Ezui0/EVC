@@ -16,6 +16,8 @@ def create_parser():
     base_parser.add_argument("--f0_method", type=str, default="rmvpe", help="F0 extraction method")
     base_parser.add_argument("--f0_min", type=int, default=50, help="Minimum F0 frequency")
     base_parser.add_argument("--f0_max", type=int, default=1100, help="Maximum F0 frequency")
+    base_parser.add_argument("--use_uvr", type=str, default="False", help="Use UVR5 For separating vocal")
+    base_parser.add_argument("--is_backing", type=str, default="False", help="Convert the backing vocal")
     base_parser.add_argument("--hop_length", type=int, default=128, help="Hop length for processing")
     base_parser.add_argument("--rvc_pitch", type=float, default=0, help="Pitch shift of the RVC model")
     base_parser.add_argument("--protect", type=float, default=0.5, help="Consonant protection")
@@ -51,6 +53,8 @@ def main():
         "f0_method": args.f0_method,
         "f0_min": args.f0_min,
         "f0_max": args.f0_max,
+        "use_uvr": args.use_uvr,
+        "is_backing": args.is_backing,
         "hop_length": args.hop_length,
         "rvc_pitch": args.rvc_pitch,
         "protect": args.protect,
