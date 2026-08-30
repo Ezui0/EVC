@@ -2,6 +2,7 @@ import sys
 from typing import Any
 import gradio as gr
 from tabs.inference import inference_tab
+from tabs.download import dltabs
 from assets.logging_config import configure_logging
 from assets.model_installer import check_and_install_models
 
@@ -31,8 +32,8 @@ with gr.Blocks(
 ) as app:
 
     
-    with gr.Tab("Inference"):
-        inference_tab()
+    inference_tab()
+    dltabs()
 
     
 def launch_gradio(server_name: str, server_port: int) -> None:
