@@ -186,9 +186,24 @@ def inference_tab():
                                         f0_min = gr.Slider(minimum=1,maximum=120,step=1,value=50,label="Minimum pitch range",info="Defines the lower bound of the pitch range for fundamental frequency (F0) detection.",interactive=True,visible=True)                                                                                                                                                                                                                                                                                                               
                                         f0_max = gr.Slider(minimum=380,maximum=16000,step=1,value=1100,label="Maximum pitch range",info="Defines the upper bound of the pitch range for fundamental frequency (F0) detection.",interactive=True,visible=True)
                                     with gr.Row():
-                                        use_uvr = gr.Checkbox(label="Use UVR for Separating Vocals")
-                                        is_backing = gr.Checkbox(label="Use backing vocal")
-                                        
+                                        use_uvr = gr.Checkbox(label="Use UVR for Separating Vocals", value=False)
+                                        is_backing = gr.Checkbox(label="Use backing vocal", value=False)
+                                        backing_volume = gr.Slider(
+                                            minimum=0.0,
+                                            maximum=2.0,
+                                            step=0.1,
+                                            value=1.0,
+                                            label="Backing vocal volume",
+                                            info="Adjust the volume of backing vocals relative to lead vocals",
+                                            interactive=True,
+                                            visible=True,
+                                        )
+                                        output_format = gr.Dropdown(
+                                            label="Output format",
+                                            choices=["wav", "mp3", "flac", "ogg", "m4a"],
+                                            value="wav",
+                                            interactive=True,
+                                        )
                     
             with gr.Row():
                 vc_output1 = gr.Textbox("")
@@ -199,17 +214,19 @@ def inference_tab():
                     [
                         sid0,
                         input_audio0,
+                        use_uvr,  # Pass the checkbox value
+                        is_backing,  # Pass the checkbox value
                         f0_method,
                         hop_length,  
                         index_rate,
                         f0_min,      
                         f0_max,
-                        use_uvr=False, 
-                        is_backing=False,
                         protect,     
                         volume_envelope, 
                         vc_transform0,
-                        f0_file
+                        f0_file,
+                        output_format,
+                        backing_volume
                     ],
                     [vc_output1, vc_output2],
                 )
@@ -304,6 +321,8 @@ def inference_tab():
                         [
                             sid0,
                             dir_input,
+                            use_uvr,  # Pass the checkbox value
+                            is_backing,  # Pass the checkbox value
                             f0_method,
                             hop_length,
                             index_rate,
@@ -311,7 +330,8 @@ def inference_tab():
                             f0_max,
                             protect,
                             volume_envelope,
-                            vc_transform1
+                            vc_transform1,
+                            backing_volume
                         ],
                         [vc_output3],
                     )
@@ -369,7 +389,8 @@ def inference_tab():
                     tts_text,
                     tts_rate,
                     tts_volume,
-                    tts_pitch
+                    tts_pitch,
+                    output_format
                 ],
                 outputs=tts_output
             )
@@ -444,4 +465,3 @@ def inference_tab():
                 {app_name}: {url_github}
                 """
                 )
-
