@@ -42,9 +42,6 @@ def print_display_progress(percent, message, progress=gr.Progress()):
     progress(percent, desc=message)
 
 
-
-
-
 def separate_vox(input_path, output_dir=None):
     """
     Separate audio using UVR models.
@@ -245,6 +242,7 @@ def convert_with_uvr(
             )
     else:
         # Convert original audio without UVR
+        print_display_progress(0.1, "[🎵] UVR disabled - converting original audio directly...")
         output_path = _run_conversion(
             rvc_model=rvc_model,
             input_path=input_path,
@@ -481,7 +479,11 @@ def rvc_infer(
     output_format="wav",
     backing_volume=1.0,
 ):
+    # Ensure use_uvr is treated as boolean
+    use_uvr = bool(use_uvr)
+    
     if use_uvr:
+        print("🎵 UVR separation enabled")
         output_path = convert_with_uvr(
             rvc_model=rvc_model,
             input_path=input_path,
@@ -499,6 +501,7 @@ def rvc_infer(
             backing_volume=backing_volume,
         )
     else:
+        print("🎵 UVR separation disabled - converting original audio directly")
         output_path = _run_conversion(
             rvc_model=rvc_model,
             input_path=input_path,
