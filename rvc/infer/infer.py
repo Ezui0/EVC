@@ -9,6 +9,7 @@ import torch
 from pydub import AudioSegment
 from scipy.io import wavfile
 
+from audio_separator.separator import Separator
 from rvc.infer.config import Config
 from rvc.infer.pipeline import VC
 from rvc.lib.algorithm.synthesizers import Synthesizer
@@ -39,6 +40,226 @@ def display_progress(percent, message, progress=gr.Progress()):
 def print_display_progress(percent, message, progress=gr.Progress()):
     print(message)
     progress(percent, desc=message)
+
+
+
+
+
+def separate_vox(input_path, output_dir=None):
+    """
+    Separate audio using UVR models.
+    
+    Args:
+        input_path: Path to input audio file
+        output_dir: Output directory for separated files
+    
+    Returns:
+        Tuple of (vocals, instrumental, lead_vocals, backing_vocals, vocals_no_reverb, vocals_reverb)
+    """
+    if output_dir is None:
+        output_dir = OUTPUT_DIR
+    
+    separator = Separator(output_dir=output_dir)
+    
+    # Vocals and Instrumental
+    vocals = os.path.join(output_dir, 'Vocals.wav')
+    instrumental = os.path.join(output_dir, 'Instrumental.wav')
+
+    # Vocals with Reverb and Vocals without Reverb
+    vocals_reverb = os.path.join(output_dir, 'Vocals (Reverb).wav')
+    vocals_no_reverb = os.path.join(output_dir, 'Vocals (No Reverb).wav')
+    
+    # Lead Vocals and Backing Vocals
+    lead_vocals = os.path.join(output_dir, 'Lead Vocals.wav')
+    backing_vocals = os.path.join(output_dir, 'Backing Vocals.wav')
+
+    # Splitting a track into Vocal and Instrumental
+    separator.load_model(model_filename='model_bs_roformer_ep_317_sdr_12.9755.ckpt')
+    voc_inst = separator.separate(input_path)
+    
+    os.rename(os.path.join(output_dir, voc_inst[0]), instrumental)
+    os.rename(os.path.join(output_dir, voc_inst[1]), vocals)
+    
+    # Applying DeEcho-DeReverb to Vocals
+    separator.load_model(model_filename='UVR-DeEcho-DeReverb.pth')
+    voc_no_reverb = separator.separate(vocals)
+    os.rename(os.path.join(output_dir, voc_no_reverb[0]), vocals_no_reverb)
+    os.rename(os.path.join(output_dir, voc_no_reverb[1]), vocals_reverb)
+
+    # Separating Back Vocals from Main Vocals
+    separator.load_model(model_filename='mel_band_roformer_karaoke_aufr33_viperx_sdr_10.1956.ckpt')
+    backing_voc = separator.separate(vocals_no_reverb)
+    os.rename(os.path.join(output_dir, backing_voc[0]), backing_vocals)
+    os.rename(os.path.join(output_dir, backing_voc[1]), lead_vocals)
+
+    return vocals, instrumental, lead_vocals, backing_vocals, vocals_no_reverb, vocals_reverb
+
+
+def merge_audio(audio1_path, audio2_path, output_path, volume_ratio=1.0):
+    """
+    Merge two audio files together.
+    
+    Args:
+        audio1_path: Path to first audio file
+        audio2_path: Path to second audio file
+        output_path: Path for merged output
+        volume_ratio: Volume ratio for audio2 relative to audio1 (default: 1.0)
+    """
+    audio1 = AudioSegment.from_file(audio1_path)
+    audio2 = AudioSegment.from_file(audio2_path)
+    
+    # Ensure both audio have same length (pad or trim)
+    if len(audio1) > len(audio2):
+        audio2 = audio2 + AudioSegment.silent(duration=len(audio1) - len(audio2))
+    elif len(audio2) > len(audio1):
+        audio1 = audio1 + AudioSegment.silent(duration=len(audio2) - len(audio1))
+    
+    # Adjust volume of audio2 if needed
+    if volume_ratio != 1.0:
+        audio2 = audio2.apply_gain(volume_ratio)
+    
+    # Overlay audio2 on top of audio1
+    merged = audio1.overlay(audio2)
+    
+    # Export merged audio
+    merged.export(output_path, format=os.path.splitext(output_path)[1].lstrip("."))
+    return output_path
+
+
+def convert_with_uvr(
+    rvc_model=None,
+    input_path=None,
+    use_uvr=True,
+    is_backing=False,
+    f0_method="rmvpe",
+    hop_length=128,
+    index_rate=0,
+    f0_min=50,
+    f0_max=1100,
+    protect=0.5,
+    volume_envelope=1,
+    rvc_pitch=0,
+    output_format="wav",
+    backing_volume=1.0,
+):
+    """
+    Convert audio with optional UVR separation.
+    
+    Args:
+        rvc_model: RVC model name
+        input_path: Input audio file path
+        use_uvr: Whether to use UVR separation
+        is_backing: If True, use backing vocals; if False, use lead vocals
+        f0_method: Pitch extraction method
+        hop_length: Hop length for pitch extraction
+        index_rate: Index rate for RVC
+        f0_min: Minimum pitch
+        f0_max: Maximum pitch
+        protect: Protection level
+        volume_envelope: Volume envelope
+        rvc_pitch: Pitch shift
+        output_format: Output audio format
+        backing_volume: Volume ratio for backing vocals when merged (default: 1.0)
+    
+    Returns:
+        Path to converted audio file
+    """
+    if not rvc_model:
+        raise gr.Error("Please select a voice model to convert.")
+    if not input_path:
+        raise gr.Error("Please select or upload an audio file to convert.")
+    if not os.path.exists(input_path):
+        raise gr.Error(f"Could not find the file '{input_path}'.")
+
+    # If UVR is enabled, separate the audio first
+    if use_uvr:
+        print_display_progress(0.1, "[🎵] Separating audio with UVR...")
+        vocals, instrumental, lead_vocals, backing_vocals, vocals_no_reverb, vocals_reverb = separate_vox(input_path)
+        
+        if is_backing:
+            # Convert both lead and backing vocals separately
+            print_display_progress(0.2, "[🎤] Converting lead vocals...")
+            lead_converted = _run_conversion(
+                rvc_model=rvc_model,
+                input_path=lead_vocals,
+                f0_method=f0_method,
+                hop_length=hop_length,
+                index_rate=index_rate,
+                f0_min=f0_min,
+                f0_max=f0_max,
+                protect=protect,
+                volume_envelope=volume_envelope,
+                rvc_pitch=rvc_pitch,
+                output_format="wav",  # Keep as wav for merging
+            )
+            
+            print_display_progress(0.5, "[🎤] Converting backing vocals...")
+            backing_converted = _run_conversion(
+                rvc_model=rvc_model,
+                input_path=backing_vocals,
+                f0_method=f0_method,
+                hop_length=hop_length,
+                index_rate=index_rate,
+                f0_min=f0_min,
+                f0_max=f0_max,
+                protect=protect,
+                volume_envelope=volume_envelope,
+                rvc_pitch=rvc_pitch,
+                output_format="wav",  # Keep as wav for merging
+            )
+            
+            # Merge lead and backing vocals
+            print_display_progress(0.8, "[🔊] Merging lead and backing vocals...")
+            base_name = os.path.splitext(os.path.basename(input_path))[0]
+            if len(base_name) > 50:
+                base_name = "Made_in_EVC"
+            
+            merged_path = os.path.join(OUTPUT_DIR, f"{base_name}_merged._{rvc_model}_backing.{output_format}")
+            
+            # Merge with backing volume adjustment
+            merge_audio(lead_converted, backing_converted, merged_path, backing_volume)
+            
+            # Clean up temporary files
+            if os.path.exists(lead_converted) and os.path.basename(lead_converted).startswith("temp_"):
+                os.remove(lead_converted)
+            if os.path.exists(backing_converted) and os.path.basename(backing_converted).startswith("temp_"):
+                os.remove(backing_converted)
+            
+            output_path = merged_path
+            print_display_progress(1.0, "[✅] Conversion with merged vocals complete!")
+        else:
+            # Convert only lead vocals
+            print_display_progress(0.2, "[🎤] Using lead vocals for conversion...")
+            output_path = _run_conversion(
+                rvc_model=rvc_model,
+                input_path=lead_vocals,
+                f0_method=f0_method,
+                hop_length=hop_length,
+                index_rate=index_rate,
+                f0_min=f0_min,
+                f0_max=f0_max,
+                protect=protect,
+                volume_envelope=volume_envelope,
+                rvc_pitch=rvc_pitch,
+                output_format=output_format,
+            )
+    else:
+        # Convert original audio without UVR
+        output_path = _run_conversion(
+            rvc_model=rvc_model,
+            input_path=input_path,
+            f0_method=f0_method,
+            hop_length=hop_length,
+            index_rate=index_rate,
+            f0_min=f0_min,
+            f0_max=f0_max,
+            protect=protect,
+            volume_envelope=volume_envelope,
+            rvc_pitch=rvc_pitch,
+            output_format=output_format,
+        )
+    
+    return output_path
 
 
 # Loads the RVC model and index by model name.
@@ -150,7 +371,6 @@ async def text_to_speech(voice, text, rate, volume, pitch, output_path):
 
 
 # Core conversion pipeline: returns the path to the finished file.
-# Parameter order matches the inputs order of gr.Button.click in tabs/inference.py.
 def _run_conversion(
     rvc_model=None,
     input_path=None,
@@ -192,7 +412,7 @@ def _run_conversion(
     base_name = os.path.splitext(os.path.basename(input_path))[0]
     if len(base_name) > 50:
         gr.Warning("The file name exceeds 50 characters and will be shortened for convenience.")
-        base_name = "Made_in_PolGen"  # Rename if the original name exceeds 50 characters
+        base_name = "Made_in_PolGen"
     output_path = os.path.join(OUTPUT_DIR, f"{base_name}_({rvc_model}).{output_format}")
 
     # Load the audio file
@@ -219,7 +439,6 @@ def _run_conversion(
     )
 
     # Save the result to a temporary wav file, then export it
-    # to the user-selected format with the correct extension.
     display_progress(0.6, "Saving result...")
     tmp_fd, tmp_wav_path = tempfile.mkstemp(prefix="polgen_", suffix=".wav", dir=OUTPUT_DIR)
     os.close(tmp_fd)
@@ -245,10 +464,11 @@ def _run_conversion(
 
 
 # Convert a single audio file through the GUI.
-# Returns (message, audio component) under outputs=[vc_output1, vc_output2].
 def rvc_infer(
     rvc_model=None,
     input_path=None,
+    use_uvr=False,
+    is_backing=False,
     f0_method="rmvpe",
     hop_length=128,
     index_rate=0,
@@ -257,31 +477,52 @@ def rvc_infer(
     protect=0.5,
     volume_envelope=1,
     rvc_pitch=0,
-    f0_file=None,  # Reserved: F0 curve file is not supported yet
+    f0_file=None,
     output_format="wav",
+    backing_volume=1.0,
 ):
-    output_path = _run_conversion(
-        rvc_model=rvc_model,
-        input_path=input_path,
-        f0_method=f0_method,
-        hop_length=hop_length,
-        index_rate=index_rate,
-        f0_min=f0_min,
-        f0_max=f0_max,
-        protect=protect,
-        volume_envelope=volume_envelope,
-        rvc_pitch=rvc_pitch,
-        output_format=output_format,
-    )
+    if use_uvr:
+        output_path = convert_with_uvr(
+            rvc_model=rvc_model,
+            input_path=input_path,
+            use_uvr=True,
+            is_backing=is_backing,
+            f0_method=f0_method,
+            hop_length=hop_length,
+            index_rate=index_rate,
+            f0_min=f0_min,
+            f0_max=f0_max,
+            protect=protect,
+            volume_envelope=volume_envelope,
+            rvc_pitch=rvc_pitch,
+            output_format=output_format,
+            backing_volume=backing_volume,
+        )
+    else:
+        output_path = _run_conversion(
+            rvc_model=rvc_model,
+            input_path=input_path,
+            f0_method=f0_method,
+            hop_length=hop_length,
+            index_rate=index_rate,
+            f0_min=f0_min,
+            f0_max=f0_max,
+            protect=protect,
+            volume_envelope=volume_envelope,
+            rvc_pitch=rvc_pitch,
+            output_format=output_format,
+        )
+    
     message = f"[✅] Conversion complete - {os.path.basename(output_path)}"
     return message, gr.Audio(output_path, label=os.path.basename(output_path))
 
 
 # Batch conversion of a folder/files; returns only a text message
-# under outputs=[vc_output3].
 def rvc_batch_infer(
     rvc_model=None,
     input_path=None,
+    use_uvr=False,
+    is_backing=False,
     f0_method="rmvpe",
     hop_length=128,
     index_rate=0,
@@ -290,11 +531,14 @@ def rvc_batch_infer(
     protect=0.5,
     volume_envelope=1,
     rvc_pitch=0,
+    backing_volume=1.0,
     *unused,
 ):
     message, _audio = rvc_infer(
         rvc_model=rvc_model,
         input_path=input_path,
+        use_uvr=use_uvr,
+        is_backing=is_backing,
         f0_method=f0_method,
         hop_length=hop_length,
         index_rate=index_rate,
@@ -303,6 +547,7 @@ def rvc_batch_infer(
         protect=protect,
         volume_envelope=volume_envelope,
         rvc_pitch=rvc_pitch,
+        backing_volume=backing_volume,
     )
     return message
 
