@@ -31,8 +31,8 @@ with gr.Blocks(
     ),
 ) as app:
 
-    
-    inference_tab()
+    with gr.Tabs():
+        inference_tab()
     with gr.Tabs():
         dltabs()
 
