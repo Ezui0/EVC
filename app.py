@@ -33,7 +33,8 @@ with gr.Blocks(
 
     
     inference_tab()
-    dltabs()
+    with gr.Tabs():
+        dltabs()
 
     
 def launch_gradio(server_name: str, server_port: int) -> None:
