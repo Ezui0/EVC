@@ -69,7 +69,7 @@ def yt_download(link):
 
 def dltabs():
     with gr.TabItem("Download Music"):
-        url_input = gr.Texbox(label="URL YT")
+        url_input = gr.Textbox(label="URL YT")
         optau = gr.Audio(label="OPT") 
         dl_yt = gr.Button("Download")
         dl_yt.click(fn=yt_download, inputs=[url_input], outputs=[optau])
