@@ -3,7 +3,7 @@ import gradio as gr
 import yt_dlp
 import os, sys
 
-BASE_DIR = sys.path.append(os.getcwd())
+BASE_DIR = os.getcwd()
 
 output_dir = os.path.join(BASE_DIR, 'audios')
 
