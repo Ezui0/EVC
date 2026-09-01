@@ -4,6 +4,7 @@ Gradio 4.44.1 has several known issues when used with Python 3.12+/3.13+ and new
 1. `gradio/oauth.py` imports `HfFolder` which was removed in huggingface_hub>=0.25
 2. `gradio_client/utils.py` `get_type()` crashes on non-dict JSON schemas from newer Pydantic
 3. `jinja2` 3.1.5+/3.2.x `_load_template` creates unhashable cache_key (dict) on some versions
+4. `gradio/blocks.py` `get_api_info()` doesn't guard `info` being non-dict from Pydantic
 
 Run this script after `pip install -r requirements.txt` to apply all patches.
 This script finds files by path without importing gradio, so it works even if gradio
@@ -107,6 +108,17 @@ def patch_gradio_client():
     else:
         print(f"[SKIP] {utils_path}: _json_schema_to_python_type pattern not found")
 
+    # Patch 3: json_schema_to_python_type() - wrap in try/except for safety
+    old_jst = 'def json_schema_to_python_type(schema: Any) -> str:\n    type_ = _json_schema_to_python_type(schema, schema.get("$defs"))\n    return type_.replace(CURRENT_FILE_DATA_FORMAT, "filepath")'
+    new_jst = 'def json_schema_to_python_type(schema: Any) -> str:\n    try:\n        if not isinstance(schema, dict):\n            return type(schema).__name__\n        type_ = _json_schema_to_python_type(schema, schema.get("$defs"))\n        return type_.replace(CURRENT_FILE_DATA_FORMAT, "filepath")\n    except Exception:\n        return "Any"'
+    if old_jst in content:
+        content = content.replace(old_jst, new_jst)
+        patched += 1
+    elif "except Exception:\n        return \"Any\"" in content:
+        print(f"[OK] {utils_path} already patched (json_schema_to_python_type try/except)")
+    else:
+        print(f"[SKIP] {utils_path}: json_schema_to_python_type pattern not found")
+
     if patched > 0:
         with open(utils_path, "w") as f:
             f.write(content)
@@ -133,14 +145,6 @@ def patch_jinja2():
         print(f"[OK] {env_path} already patched (cache_key)")
         return
 
-    # We need to find the _load_template method and make cache_key hashable.
-    # Different jinja2 versions construct cache_key differently, so we
-    # inject a helper function and wrap the cache_key assignment.
-
-    # Approach: insert a helper function before the class, and patch
-    # the cache_key line to use it.
-    # We look for the pattern where cache_key is assigned and wrap it.
-
     helper_code = '''
 
 def _gradio_hashable_key(key):
@@ -157,20 +161,12 @@ def _gradio_hashable_key(key):
 
 '''
 
-    # Insert helper before the class definition
-    # Find 'class Environment' and insert before it
     class_marker = "class Environment"
     if class_marker not in content:
         print(f"[SKIP] {env_path}: 'class Environment' not found")
         return
 
     content = content.replace(class_marker, helper_code + class_marker)
-
-    # Now patch cache_key usage in _load_template
-    # Pattern 1: cache_key = (..., globals) - wrap in hashable
-    # Pattern 2: cache_key = name if not globals else (name, globals)
-    # We use a regex-free approach: find all cache_key = lines in _load_template
-    # and wrap the RHS
 
     lines = content.split('\n')
     in_load_template = False
@@ -186,7 +182,6 @@ def _gradio_hashable_key(key):
         if in_load_template and 'cache_key =' in line and '_gradio_hashable_key' not in line:
             indent = len(line) - len(line.lstrip())
             stripped = line.strip()
-            # Replace: cache_key = <expr>  ->  cache_key = _gradio_hashable_key(<expr>)
             lhs, rhs = stripped.split('=', 1)
             patched_line = ' ' * indent + lhs + ' = _gradio_hashable_key(' + rhs + ')'
             result.append(patched_line)
@@ -195,10 +190,7 @@ def _gradio_hashable_key(key):
             result.append(line)
 
     if patch_count == 0:
-        # No cache_key assignment found - maybe a different jinja2 structure
-        # Try a different approach: just make the LRUCache handle unhashable keys
         print(f"[SKIP] {env_path}: no cache_key assignment found in _load_template")
-        # Revert the helper insertion
         content = content.replace(helper_code, '')
     else:
         content = '\n'.join(result)
@@ -208,12 +200,62 @@ def _gradio_hashable_key(key):
         f.write(content)
 
 
+def patch_blocks():
+    """Patch gradio/blocks.py get_api_info to guard info being non-dict.
+
+    Newer Pydantic on Python 3.13 may produce component api_info values
+    that are not dicts, causing .get() and .split() calls to crash.
+    """
+    blocks_path = find_package_file("gradio", "blocks.py")
+    if not blocks_path:
+        print("[SKIP] gradio/blocks.py not found")
+        return
+
+    with open(blocks_path, "r") as f:
+        content = f.read()
+
+    if "_gradio_safe_info" in content:
+        print(f"[OK] {blocks_path} already patched (get_api_info)")
+        return
+
+    patched = 0
+
+    # Guard 1: line with info.get("description", "") for outputs
+    # Original: info.get("description", "")
+    # We need to ensure info is a dict. Find the specific pattern.
+    old_out_desc = 'info.get("description", "")'
+    new_out_desc = '(info.get("description", "") if isinstance(info, dict) else "")'
+    if old_out_desc in content:
+        content = content.replace(old_out_desc, new_out_desc)
+        patched += 1
+
+    # Guard 2: line with (info or {}).get("additional_description", "")
+    # This is already guarded with (info or {}), so it's safe.
+
+    # Guard 3: Ensure json_schema_to_python_type gets a dict
+    # We look for: python_type = client_utils.json_schema_to_python_type(info)
+    # and wrap info to be a dict if it isn't
+    old_pt = 'python_type = client_utils.json_schema_to_python_type(info)'
+    new_pt = 'python_type = client_utils.json_schema_to_python_type(info if isinstance(info, dict) else {})'
+    if old_pt in content:
+        content = content.replace(old_pt, new_pt)
+        patched += 1
+
+    if patched > 0:
+        with open(blocks_path, "w") as f:
+            f.write(content)
+        print(f"[PATCHED] {blocks_path} (get_api_info non-dict guard, {patched} line(s))")
+    else:
+        print(f"[SKIP] {blocks_path}: patterns not found")
+
+
 def main():
     print("Patching Gradio 4.44.1 for Python 3.12+/3.13+ compatibility...")
     print(f"Python: {sys.version}")
     patch_oauth()
     patch_gradio_client()
     patch_jinja2()
+    patch_blocks()
     print("Done!")
 
 
