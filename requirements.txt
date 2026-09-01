@@ -43,7 +43,6 @@ matplotlib>=3.7.2
 
 # Implementation and web framework
 gradio==4.44.1
-huggingface_hub>=0.24,<0.25
 requests>=2.32.3
 aiohttp
 pysrt

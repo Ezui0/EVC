@@ -19,6 +19,12 @@ check_internet_connection() {
     echo
 }
 
+apply_patches() {
+    echo "Applying Gradio 4.x compatibility patches..."
+    "${PYTHON}" patch_gradio4.py
+    echo
+}
+
 running_interface() {
     echo "Running Interface..."
     if [ "$INTERNET_AVAILABLE" -eq 1 ]; then
@@ -30,5 +36,7 @@ running_interface() {
     fi
 }
 
+PYTHON="${PYTHON:-./env/bin/python}"
+apply_patches
 check_internet_connection
 running_interface
