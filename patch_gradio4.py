@@ -1,10 +1,11 @@
-"""Patch Gradio 4.44.1 for Python 3.12+/3.13+ and huggingface_hub 0.25+ compatibility.
+"""Patch Gradio 4.44.1 for Python 3.12+/3.13+ and newer dependency compatibility.
 
-Gradio 4.44.1 has two known issues when used with Python 3.12+ and newer huggingface_hub:
+Gradio 4.44.1 has several known issues when used with Python 3.12+/3.13+ and newer deps:
 1. `gradio/oauth.py` imports `HfFolder` which was removed in huggingface_hub>=0.25
 2. `gradio_client/utils.py` `get_type()` crashes on non-dict JSON schemas from newer Pydantic
+3. `jinja2` 3.1.5+/3.2.x `_load_template` creates unhashable cache_key (dict) on some versions
 
-Run this script after `pip install -r requirements.txt` to apply both patches.
+Run this script after `pip install -r requirements.txt` to apply all patches.
 This script finds files by path without importing gradio, so it works even if gradio
 currently fails to import.
 """
@@ -21,13 +22,12 @@ def find_package_file(package_name, relative_path):
         candidate = os.path.join(base, package_name.replace(".", os.sep), relative_path)
         if os.path.isfile(candidate):
             return os.path.abspath(candidate)
-        # Also check .dist-info / direct install paths
-    # Fallback: use importlib.metadata (available in 3.8+)
     try:
         import importlib.metadata
         dist = importlib.metadata.distribution(package_name)
-        if dist.locate_file(relative_path).is_file():
-            return str(dist.locate_file(relative_path))
+        located = dist.locate_file(relative_path)
+        if located and located.is_file():
+            return str(located)
     except Exception:
         pass
     return None
@@ -43,7 +43,8 @@ def patch_oauth():
     with open(oauth_path, "r") as f:
         content = f.read()
 
-    if "HfFolder = None" in content:
+    # Already patched or import doesn't exist (newer huggingface_hub removed it entirely)
+    if "HfFolder = None" in content or "HfFolder" not in content:
         print(f"[OK] {oauth_path} already patched (HfFolder)")
         return
 
@@ -63,7 +64,7 @@ from huggingface_hub import whoami"""
     new_usage = """if HfFolder is not None:
         token = HfFolder.get_token()
     else:
-        token = os.environ.get(\"HF_TOKEN\") or os.environ.get(\"HUGGING_FACE_HUB_TOKEN\")"""
+        token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")"""
     if old_usage in content:
         content = content.replace(old_usage, new_usage)
 
@@ -112,11 +113,107 @@ def patch_gradio_client():
         print(f"[PATCHED] {utils_path} ({patched} patch(es) applied)")
 
 
+def patch_jinja2():
+    """Patch jinja2 to handle unhashable cache keys in _load_template.
+
+    Some jinja2 versions (3.1.5+, 3.2.x) create a cache_key that includes a
+    globals dict, which is unhashable. This causes TypeError when Gradio
+    tries to render the main page template.
+    """
+    env_path = find_package_file("jinja2", "environment.py")
+    if not env_path:
+        print("[SKIP] jinja2/environment.py not found")
+        return
+
+    with open(env_path, "r") as f:
+        content = f.read()
+
+    # Check if already patched
+    if "_gradio_hashable_key" in content:
+        print(f"[OK] {env_path} already patched (cache_key)")
+        return
+
+    # We need to find the _load_template method and make cache_key hashable.
+    # Different jinja2 versions construct cache_key differently, so we
+    # inject a helper function and wrap the cache_key assignment.
+
+    # Approach: insert a helper function before the class, and patch
+    # the cache_key line to use it.
+    # We look for the pattern where cache_key is assigned and wrap it.
+
+    helper_code = '''
+
+def _gradio_hashable_key(key):
+    """Make a cache key hashable for jinja2 template cache compatibility."""
+    try:
+        hash(key)
+        return key
+    except TypeError:
+        if isinstance(key, dict):
+            return tuple(sorted((str(k), _gradio_hashable_key(v)) for k, v in key.items()))
+        if isinstance(key, (list, tuple)):
+            return tuple(_gradio_hashable_key(v) for v in key)
+        return str(key)
+
+'''
+
+    # Insert helper before the class definition
+    # Find 'class Environment' and insert before it
+    class_marker = "class Environment"
+    if class_marker not in content:
+        print(f"[SKIP] {env_path}: 'class Environment' not found")
+        return
+
+    content = content.replace(class_marker, helper_code + class_marker)
+
+    # Now patch cache_key usage in _load_template
+    # Pattern 1: cache_key = (..., globals) - wrap in hashable
+    # Pattern 2: cache_key = name if not globals else (name, globals)
+    # We use a regex-free approach: find all cache_key = lines in _load_template
+    # and wrap the RHS
+
+    lines = content.split('\n')
+    in_load_template = False
+    patch_count = 0
+    result = []
+
+    for line in lines:
+        if 'def _load_template(' in line:
+            in_load_template = True
+        elif in_load_template and line.strip().startswith('def '):
+            in_load_template = False
+
+        if in_load_template and 'cache_key =' in line and '_gradio_hashable_key' not in line:
+            indent = len(line) - len(line.lstrip())
+            stripped = line.strip()
+            # Replace: cache_key = <expr>  ->  cache_key = _gradio_hashable_key(<expr>)
+            lhs, rhs = stripped.split('=', 1)
+            patched_line = ' ' * indent + lhs + ' = _gradio_hashable_key(' + rhs + ')'
+            result.append(patched_line)
+            patch_count += 1
+        else:
+            result.append(line)
+
+    if patch_count == 0:
+        # No cache_key assignment found - maybe a different jinja2 structure
+        # Try a different approach: just make the LRUCache handle unhashable keys
+        print(f"[SKIP] {env_path}: no cache_key assignment found in _load_template")
+        # Revert the helper insertion
+        content = content.replace(helper_code, '')
+    else:
+        content = '\n'.join(result)
+        print(f"[PATCHED] {env_path} (cache_key hashability, {patch_count} line(s))")
+
+    with open(env_path, "w") as f:
+        f.write(content)
+
+
 def main():
-    print("Patching Gradio 4.44.1 for Python 3.12+/3.13+ / huggingface_hub 0.25+ compatibility...")
+    print("Patching Gradio 4.44.1 for Python 3.12+/3.13+ compatibility...")
     print(f"Python: {sys.version}")
     patch_oauth()
     patch_gradio_client()
+    patch_jinja2()
     print("Done!")
 
 
