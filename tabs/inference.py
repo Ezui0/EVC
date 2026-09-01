@@ -216,7 +216,7 @@ def inference_tab():
                         is_backing,  # Pass the checkbox value
                         f0_method,
                         hop_length,  
-                        index_rate,
+                        index_rate1,
                         f0_min,      
                         f0_max,
                         protect,     
@@ -224,7 +224,8 @@ def inference_tab():
                         vc_transform0,
                         f0_file,
                         output_format,
-                        backing_volume
+                        backing_volume,
+                        file_index1,
                     ],
                     [vc_output1, vc_output2],
                 )

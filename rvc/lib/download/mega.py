@@ -59,7 +59,7 @@ def base64_url_decode(data):
 def str_to_a32(b):
     if isinstance(b, str): b = makebyte(b)
     if len(b) % 4: b += b'\0' * (4 - len(b) % 4)
-    return struct.unpack('>%dI' % (len(b) / 4), b)
+    return struct.unpack('>%dI' % (len(b) // 4), b)
 
 def base64_to_a32(s):
     return str_to_a32(base64_url_decode(s))
@@ -106,7 +106,7 @@ def mega_download_file(file_handle, file_key, dest_path=None):
 
     if (file_mac[0] ^ file_mac[1], file_mac[2] ^ file_mac[3]) != file_key[6:8]: raise ValueError
 
-    file_path = os.path.join(dest_path, attribs['n'])
+    file_path = os.path.join(dest_path, attribs['n']) if os.path.isdir(dest_path) else dest_path
     if os.path.exists(file_path): os.remove(file_path)
 
     shutil.move(temp_output_file.name, file_path)

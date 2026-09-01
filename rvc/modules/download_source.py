@@ -1,10 +1,8 @@
 import urllib.request
 from urllib.parse import urlparse
 
-import gdown
 import gradio as gr
 import requests
-from rvc.lib.download.hf import HF_download_file
 from rvc.lib.download import mega, mediafire, pixeldrain
 
 
@@ -30,11 +28,12 @@ def download_file(url, zip_name, progress):
         raise gr.Error(f"Download error: {str(e)}")
 
 
-# Download a file from Google Drive using the gdown library
+# Download a file from Google Drive using urllib (avoids extra gdown dependency)
 def download_from_google_drive(url, zip_name, progress):
     progress(0.5, desc="[~] Downloading model from Google Drive...")
     file_id = url.split("file/d/")[1].split("/")[0] if "file/d/" in url else url.split("id=")[1].split("&")[0]  # Extract the file ID
-    gdown.download(id=file_id, output=str(zip_name), quiet=False)
+    download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+    urllib.request.urlretrieve(download_url, zip_name)
 
 
 # Download a file from HuggingFace using urllib
@@ -52,12 +51,17 @@ def download_from_pixeldrain(url, zip_name, progress):
         f.write(response.content)
 
 
-# Download a file from Mega using the mega library
+# Download a file from Mega using the mega module
+# The mega module provides a standalone implementation that does not require the Mega SDK class.
+# If the module fails to import or handle the URL, a helpful error is raised.
 def download_from_mega(url, zip_name, progress):
-    if Mega is None:
-        raise gr.Error("The mega.py library is unavailable in this environment. Download the model via a direct link (e.g. HuggingFace).")
     progress(0.5, desc="[~] Downloading model from Mega...")
-    mega.mega_download_url(url, dest_filename=str(zip_name))
+    try:
+        import os
+        dest_dir = os.path.dirname(zip_name)
+        mega.mega_download_url(url, dest_path=dest_dir if dest_dir else ".")
+    except Exception as e:
+        raise gr.Error(f"Failed to download from Mega: {str(e)}. Download the model via a direct link (e.g. HuggingFace).")
 
 
 # Download a file from Yandex Disk via its public API

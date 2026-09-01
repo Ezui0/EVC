@@ -51,7 +51,7 @@ def get_youtube_video_id(url, ignore_playlist=True):
     return None
 
 
-def yt_download(link):
+def yt_download(link, cookie_file=None, cookie_browser=None):
     """Download audio from YouTube"""
     if not link or not link.strip():
         error_msg = 'No URL provided. Please enter a valid YouTube URL.'
@@ -67,7 +67,8 @@ def yt_download(link):
     if song_id is None:
         error_msg = 'Invalid YouTube URL. Please check the URL and try again.'
         raise_exception(error_msg)
-    
+
+    # Build yt-dlp options with cookie support
     ydl_opts = {
         'format': 'bestaudio',
         'outtmpl': os.path.join(output_dir, '%(title)s.%(ext)s'),
@@ -82,6 +83,22 @@ def yt_download(link):
             'preferredquality': '192',
         }],
     }
+
+    # Priority 1: use uploaded cookie file
+    if cookie_file is not None:
+        ydl_opts['cookiefile'] = cookie_file.name if hasattr(cookie_file, 'name') else str(cookie_file)
+    # Priority 2: extract cookies from a browser
+    elif cookie_browser and cookie_browser != 'none':
+        ydl_opts['cookiesfrombrowser'] = (cookie_browser,)
+
+    # Common anti-bot settings
+    ydl_opts.setdefault('http_headers', {})
+    ydl_opts['http_headers']['User-Agent'] = (
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/135.0.0.0 Safari/537.36'
+    )
+    ydl_opts['extractor_args'] = {'youtube': {'player_client': ['ios', 'web']}}
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -106,18 +123,43 @@ def yt_download(link):
             
             return download_path
             
+    except gr.Error:
+        raise
     except Exception as e:
         error_msg = f'Error downloading from YouTube: {str(e)}'
+        if 'Sign in to confirm' in str(e) or 'bot' in str(e).lower():
+            error_msg += (
+                '\n\nTip: YouTube requires cookies to bypass bot detection. '
+                'Try uploading a cookies.txt file or selecting a browser to extract cookies from.'
+            )
         raise_exception(error_msg)
-        return None
 
 
 def dltabs():
     with gr.TabItem("Download Music"):
         url_input = gr.Textbox(label="URL YT", placeholder="Enter YouTube URL here...")
-        optau = gr.Audio(label="OPT", type="filepath")
-        dl_yt = gr.Button("Download")
-        dl_yt.click(fn=yt_download, inputs=[url_input], outputs=[optau])
+        with gr.Row():
+            cookie_browser = gr.Dropdown(
+                label="Extract cookies from browser (optional)",
+                choices=["none", "chrome", "firefox", "edge", "brave", "opera", "vivaldi"],
+                value="none",
+                allow_custom_value=False,
+                info="Select a browser to auto-extract login cookies. Requires you to be logged into YouTube in that browser.",
+            )
+        with gr.Row():
+            cookie_file = gr.File(
+                label="Or upload cookies.txt (optional)",
+                file_types=[".txt"],
+                file_count="single",
+            )
+        with gr.Row():
+            optau = gr.Audio(label="Output", type="filepath")
+        dl_yt = gr.Button("Download", variant="primary")
+        dl_yt.click(
+            fn=yt_download,
+            inputs=[url_input, cookie_file, cookie_browser],
+            outputs=[optau],
+        )
     
     with gr.TabItem("Download Model"):
         output_message = gr.Textbox(label="Output Message", interactive=False)

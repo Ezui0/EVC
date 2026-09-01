@@ -138,6 +138,7 @@ def convert_with_uvr(
     rvc_pitch=0,
     output_format="wav",
     backing_volume=1.0,
+    file_index=None,
 ):
     """
     Convert audio with optional UVR separation.
@@ -188,6 +189,7 @@ def convert_with_uvr(
                 volume_envelope=volume_envelope,
                 rvc_pitch=rvc_pitch,
                 output_format="wav",  # Keep as wav for merging
+                file_index=file_index,
             )
             
             print_display_progress(0.5, "[🎤] Converting backing vocals...")
@@ -203,6 +205,7 @@ def convert_with_uvr(
                 volume_envelope=volume_envelope,
                 rvc_pitch=rvc_pitch,
                 output_format="wav",  # Keep as wav for merging
+                file_index=file_index,
             )
             
             # Merge lead and backing vocals
@@ -239,6 +242,7 @@ def convert_with_uvr(
                 volume_envelope=volume_envelope,
                 rvc_pitch=rvc_pitch,
                 output_format=output_format,
+                file_index=file_index,
             )
     else:
         # Convert original audio without UVR
@@ -255,13 +259,14 @@ def convert_with_uvr(
             volume_envelope=volume_envelope,
             rvc_pitch=rvc_pitch,
             output_format=output_format,
+            file_index=file_index,
         )
     
     return output_path
 
 
 # Loads the RVC model and index by model name.
-def load_rvc_model(rvc_model):
+def load_rvc_model(rvc_model, explicit_index_path=None):
     # Build the path to the model directory
     model_dir = os.path.join(RVC_MODELS_DIR, rvc_model)
     if not os.path.isdir(model_dir):
@@ -274,8 +279,11 @@ def load_rvc_model(rvc_model):
 
     # Find the model file with the .pth extension
     rvc_model_path = next((os.path.join(model_dir, f) for f in model_files if f.endswith(".pth")), None)
-    # Find the index file with the .index extension
-    rvc_index_path = next((os.path.join(model_dir, f) for f in model_files if f.endswith(".index")), None)
+    # Use the explicit index path if provided, otherwise auto-discover
+    if explicit_index_path and os.path.exists(explicit_index_path):
+        rvc_index_path = explicit_index_path
+    else:
+        rvc_index_path = next((os.path.join(model_dir, f) for f in model_files if f.endswith(".index")), None)
 
     # Make sure the model file exists
     if not rvc_model_path:
@@ -381,6 +389,7 @@ def _run_conversion(
     volume_envelope=1,
     rvc_pitch=0,
     output_format="wav",
+    file_index=None,
 ):
     if not rvc_model:
         raise gr.Error("Please select a voice model to convert.")
@@ -400,7 +409,7 @@ def _run_conversion(
     hubert_model = load_hubert(HUBERT_BASE_PATH)
     # Load the RVC model and index
     display_progress(0.2, "Loading RVC model and index...")
-    model_path, index_path = load_rvc_model(rvc_model)
+    model_path, index_path = load_rvc_model(rvc_model, explicit_index_path=file_index)
     # Set up the voice converter
     display_progress(0.3, "Setting up voice converter...")
     cpt, version, net_g, tgt_sr, vc = get_vc(model_path)
@@ -478,6 +487,7 @@ def rvc_infer(
     f0_file=None,
     output_format="wav",
     backing_volume=1.0,
+    file_index=None,
 ):
     # Ensure use_uvr is treated as boolean
     use_uvr = bool(use_uvr)
@@ -499,6 +509,7 @@ def rvc_infer(
             rvc_pitch=rvc_pitch,
             output_format=output_format,
             backing_volume=backing_volume,
+            file_index=file_index,
         )
     else:
         print("🎵 UVR separation disabled - converting original audio directly")
@@ -514,6 +525,7 @@ def rvc_infer(
             volume_envelope=volume_envelope,
             rvc_pitch=rvc_pitch,
             output_format=output_format,
+            file_index=file_index,
         )
     
     message = f"[✅] Conversion complete - {os.path.basename(output_path)}"
@@ -537,22 +549,44 @@ def rvc_batch_infer(
     backing_volume=1.0,
     *unused,
 ):
-    message, _audio = rvc_infer(
-        rvc_model=rvc_model,
-        input_path=input_path,
-        use_uvr=use_uvr,
-        is_backing=is_backing,
-        f0_method=f0_method,
-        hop_length=hop_length,
-        index_rate=index_rate,
-        f0_min=f0_min,
-        f0_max=f0_max,
-        protect=protect,
-        volume_envelope=volume_envelope,
-        rvc_pitch=rvc_pitch,
-        backing_volume=backing_volume,
-    )
-    return message
+    supported_exts = (".wav", ".mp3", ".flac", ".ogg", ".m4a", ".opus", ".aiff", ".ac3")
+    files_to_convert = []
+
+    # Collect files from the input path (file or directory)
+    if input_path and os.path.isdir(input_path):
+        for f in os.listdir(input_path):
+            if f.lower().endswith(supported_exts):
+                files_to_convert.append(os.path.join(input_path, f))
+    elif input_path and os.path.isfile(input_path):
+        files_to_convert.append(input_path)
+
+    if not files_to_convert:
+        return "No supported audio files found in the input path."
+
+    results = []
+    for i, file_path in enumerate(files_to_convert):
+        try:
+            print(f"[Batch {i+1}/{len(files_to_convert)}] Converting: {os.path.basename(file_path)}")
+            message, _audio = rvc_infer(
+                rvc_model=rvc_model,
+                input_path=file_path,
+                use_uvr=use_uvr,
+                is_backing=is_backing,
+                f0_method=f0_method,
+                hop_length=hop_length,
+                index_rate=index_rate,
+                f0_min=f0_min,
+                f0_max=f0_max,
+                protect=protect,
+                volume_envelope=volume_envelope,
+                rvc_pitch=rvc_pitch,
+                backing_volume=backing_volume,
+            )
+            results.append(message)
+        except Exception as e:
+            results.append(f"Error converting {os.path.basename(file_path)}: {str(e)}")
+
+    return "\n".join(results)
 
 
 def rvc_edgetts_infer(

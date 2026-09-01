@@ -278,15 +278,15 @@ class VC:
             )
             s = t
 
-        pitch_segment = pitch_tensor[:, t // self.window :] if pitch_guidance and t is not None else pitch_tensor
-        pitchf_segment = pitchf_tensor[:, t // self.window :] if pitch_guidance and t is not None else pitchf_tensor
+        pitch_segment = pitch_tensor[:, s // self.window :] if pitch_guidance and t is not None else pitch_tensor
+        pitchf_segment = pitchf_tensor[:, s // self.window :] if pitch_guidance and t is not None else pitchf_tensor
 
         audio_opt.append(
             self.vc(
                 model,
                 net_g,
                 sid,
-                audio_pad[t:],
+                audio_pad[s:] if t is not None else audio_pad,
                 pitch_segment,
                 pitchf_segment,
                 index,

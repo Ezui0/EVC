@@ -2,7 +2,7 @@
 pip>=23.3
 wheel
 omegaconf>=2.0.6
-setuptools==81.0.0
+setuptools>=70.0.0
 webrtcvad-wheels>=2.0.14
 
 onnxruntime; sys_platform == 'darwin'
@@ -42,7 +42,8 @@ scipy>=1.15.0
 matplotlib>=3.7.2
 
 # Implementation and web framework
-gradio==5.23.3
+gradio==4.44.1
+huggingface_hub>=0.24,<0.25
 requests>=2.32.3
 aiohttp
 pysrt
